@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { Agent } from "@buildingai/service/consoleapi/ai-agent";
+import { useRouter } from "vue-router"; // 引入路由工具
 
 const props = withDefaults(
     defineProps<{
@@ -17,8 +18,13 @@ const emit = defineEmits<{
     click: [agent: Agent];
 }>();
 
+const router = useRouter(); // 初始化路由实例
+
+// 修改点击事件：跳转到agent.vue页面
 const handleClick = () => {
     emit("click", props.agent);
+    // 跳转到agent.vue页面（路由路径为/agent，根据你的页面实际路径调整）
+    router.push({ path: "/agent" });
 };
 </script>
 

@@ -5,7 +5,7 @@
 </template>
 
 <script setup lang="ts">
-import AgentChat from '~/components/AgentChat.vue'; // 组件路径要正确
+import AgentChat from "~/components/AgentChat.vue";
 </script>
 
 <style scoped>

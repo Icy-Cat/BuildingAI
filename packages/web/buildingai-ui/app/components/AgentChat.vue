@@ -1,6 +1,6 @@
 <template>
   <div class="chat-box">
-    <h3>AI 助手（对接 Coze）</h3>
+    <h3>AI 助手（对接 Coze）test</h3>
     <!-- 聊天记录（点餐记录+菜品） -->
     <div class="chat-history">
       <div 

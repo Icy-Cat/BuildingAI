@@ -107,6 +107,11 @@ const handleAgentClick = (agent: Agent) => {
     }
 };
 
+// 新增：跳转到AI助手聊天页面
+const goToAgentChat = () => {
+    router.push({ path: "/agent" });
+};
+
 definePageMeta({
     layout: "default",
     title: "menu.agentSquare",
@@ -117,7 +122,8 @@ definePageMeta({
 </script>
 
 <template>
-    <div class="container mx-auto flex h-full flex-col">
+    <div class="container mx-auto flex h-full flex-col relative">
+        <!-- 原有页面内容 -->
         <div class="bg-background sticky top-0 z-10 flex flex-col gap-3 p-4">
             <div class="flex items-center justify-between">
                 <h2 class="hidden flex-none font-bold sm:block sm:text-base lg:text-lg">
@@ -256,5 +262,35 @@ definePageMeta({
                 </BdScrollArea>
             </section>
         </div>
+
+        <!-- 新增：AI助手聊天跳转按钮（固定在右下角） -->
+        <button
+            class="agent-chat-btn fixed bottom-6 right-6 z-20 flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-full shadow-lg hover:bg-primary/90 transition-all duration-300"
+            @click="goToAgentChat"
+        >
+            <UIcon name="i-lucide-message-square-text" class="size-5" />
+            <span>{{ $t("ai-agent.frontend.chat.openAiChat") }}</span>
+        </button>
     </div>
 </template>
+
+<style scoped>
+/* 按钮样式优化（确保不遮挡页面内容） */
+.agent-chat-btn {
+    border: none;
+    cursor: pointer;
+    font-weight: 500;
+    /* 适配移动端 */
+    @media (max-width: 768px) {
+        padding: 2px 16px;
+        font-size: 14px;
+        bottom: 40px; /* 避开底部导航栏 */
+    }
+}
+
+/* 原有样式保持不变 */
+.container {
+    /* 确保页面有足够的底部间距，避免内容被按钮遮挡 */
+    padding-bottom: 80px !important;
+}
+</style>
