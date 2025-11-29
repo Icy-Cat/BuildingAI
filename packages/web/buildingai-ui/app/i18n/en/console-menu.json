@@ -60,7 +60,8 @@
     "aiConversation": {
         "title": "Chat",
         "aiChat": "Chat Records",
-        "chatConfig": "Chat Config"
+        "chatConfig": "Chat Config",
+        "scheduleConfig": "Schedule Config"
     },
     "userManagement": {
         "title": "User",

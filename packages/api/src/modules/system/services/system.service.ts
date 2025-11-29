@@ -1,7 +1,9 @@
 import { AppConfig } from "@buildingai/config/app.config";
 import { BooleanNumber, UserCreateSource, UserTerminal } from "@buildingai/constants";
 import { InjectRepository } from "@buildingai/db/@nestjs/typeorm";
+import { Menu } from "@buildingai/db/entities/menu.entity";
 import { User } from "@buildingai/db/entities/user.entity";
+import { MenuSeeder } from "@buildingai/db/seeds/runtime-seeders/menu.seeder";
 import { Repository } from "@buildingai/db/typeorm";
 import { DictService } from "@buildingai/dict";
 import { HttpErrorFactory } from "@buildingai/errors";
@@ -9,6 +11,7 @@ import { generateNo } from "@buildingai/utils";
 import { SYSTEM_CONFIG } from "@common/constants";
 import { AuthService } from "@common/modules/auth/services/auth.service";
 import { RolePermissionService } from "@common/modules/auth/services/role-permission.service";
+import { PermissionService } from "@modules/permission/services/permission.service";
 import { UserService } from "@modules/user/services/user.service";
 import { Injectable, Logger } from "@nestjs/common";
 import { exec } from "child_process";
@@ -33,6 +36,9 @@ export class SystemService {
         private readonly rolePermissionService: RolePermissionService,
         @InjectRepository(User)
         private readonly userRepository: Repository<User>,
+        @InjectRepository(Menu)
+        private readonly menuRepository: Repository<Menu>,
+        private readonly permissionService: PermissionService,
     ) {}
 
     async getSystemInfo() {
@@ -225,5 +231,14 @@ export class SystemService {
             // 如果执行失败，可能是PM2未安装或未运行该应用
             return false;
         }
+    }
+
+    /**
+     * 同步菜单
+     */
+    async syncMenu() {
+        const seeder = new MenuSeeder(this.menuRepository, this.permissionService);
+        await seeder.run();
+        return { message: "菜单同步完成" };
     }
 }

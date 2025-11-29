@@ -2,6 +2,7 @@ import { CacheService } from "@buildingai/cache";
 import { TypeOrmModule } from "@buildingai/db/@nestjs/typeorm";
 import { AccountLog } from "@buildingai/db/entities/account-log.entity";
 import { Dict } from "@buildingai/db/entities/dict.entity";
+import { Menu } from "@buildingai/db/entities/menu.entity";
 import { Payconfig } from "@buildingai/db/entities/payconfig.entity";
 import { Permission } from "@buildingai/db/entities/permission.entity";
 import { Role } from "@buildingai/db/entities/role.entity";
@@ -10,6 +11,7 @@ import { UserToken } from "@buildingai/db/entities/user-token.entity";
 import { RolePermissionService } from "@common/modules/auth/services/role-permission.service";
 import { PayModule } from "@common/modules/pay/pay.module";
 import { AuthModule } from "@modules/auth/auth.module";
+import { PermissionModule } from "@modules/permission/permission.module";
 import { UserService } from "@modules/user/services/user.service";
 import { forwardRef, Module } from "@nestjs/common";
 
@@ -26,7 +28,17 @@ import { WebsiteService } from "./services/website.service";
 @Module({
     imports: [
         AuthModule,
-        TypeOrmModule.forFeature([Dict, Permission, UserToken, User, AccountLog, Role, Payconfig]),
+        PermissionModule,
+        TypeOrmModule.forFeature([
+            Dict,
+            Permission,
+            UserToken,
+            User,
+            AccountLog,
+            Role,
+            Payconfig,
+            Menu,
+        ]),
         forwardRef(() => PayModule),
     ],
     controllers: [WebsiteConsoleController, SystemConsoleController, PayconfigConsoleController],

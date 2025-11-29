@@ -12,6 +12,7 @@ import { Injectable, Logger } from "@nestjs/common";
 
 import { ExecuteScheduleDto, ParseScheduleDto } from "../dto/ai-schedule.dto";
 import { CreateUserScheduleDto } from "../dto/create-user-schedule.dto";
+import { ScheduleConfigDto } from "../dto/schedule-config.dto";
 import type {
     AiScheduleProposal,
     AiScheduleResponse,
@@ -39,21 +40,55 @@ export class AiScheduleService {
     ) {}
 
     /**
+     * 获取日程助手配置
+     */
+    async getConfig(): Promise<ScheduleConfigDto> {
+        const config = await this.dictService.get<ScheduleConfigDto>(
+            "schedule_config",
+            undefined,
+            "ai",
+        );
+        return {
+            modelId: config?.modelId ?? "",
+            temperature: config?.temperature ?? 0.2,
+            systemPrompt: config?.systemPrompt ?? "",
+            contextLimit: config?.contextLimit ?? 5,
+        };
+    }
+
+    /**
+     * 更新日程助手配置
+     */
+    async updateConfig(dto: ScheduleConfigDto): Promise<void> {
+        await this.dictService.set("schedule_config", dto, {
+            group: "ai",
+            description: "日程助手配置",
+        });
+    }
+
+    /**
      * 解析用户输入
      */
     async parse(userId: string, dto: ParseScheduleDto): Promise<AiScheduleResponse> {
-        const model = await this.resolveModel(dto.modelId);
+        this.logger.debug(`[Parse] Request Body: ${JSON.stringify(dto)}`);
+        const config = await this.getConfig();
+        const modelId = config.modelId || dto.modelId;
+        const model = await this.resolveModel(modelId);
+        this.logger.debug(`[Parse] Using Model: ${model.name} (${model.model})`);
         const generator = await this.createGenerator(model);
         const timezone = dto.timezone || "Asia/Shanghai";
         const now = dto.now ? new Date(dto.now) : new Date();
 
-        const upcoming = await this.userScheduleService.findUpcomingSchedules(userId, 5);
-        const systemPrompt = this.buildSystemPrompt(now, timezone, upcoming);
+        const upcoming = await this.userScheduleService.findUpcomingSchedules(
+            userId,
+            config.contextLimit || 5,
+        );
+        const systemPrompt = this.buildSystemPrompt(now, timezone, upcoming, config.systemPrompt);
 
         try {
             const completion = await generator.chat.create({
                 model: model.model,
-                temperature: 0.2,
+                temperature: config.temperature ?? 0.2,
                 messages: [
                     {
                         role: "system",
@@ -261,7 +296,12 @@ export class AiScheduleService {
         return new TextGenerator(provider);
     }
 
-    private buildSystemPrompt(now: Date, timezone: string, events: UserSchedule[]): string {
+    private buildSystemPrompt(
+        now: Date,
+        timezone: string,
+        events: UserSchedule[],
+        customPrompt?: string,
+    ): string {
         const eventLines =
             events.length === 0
                 ? "暂无记录"
@@ -271,6 +311,13 @@ export class AiScheduleService {
                               `${item.id}|${item.title}|${item.startTime.toISOString()}|${item.endTime.toISOString()}`,
                       )
                       .join("\n");
+
+        if (customPrompt) {
+            return customPrompt
+                .replace("{{current_time}}", now.toISOString())
+                .replace("{{user_timezone}}", timezone)
+                .replace("{{upcoming_events}}", eventLines);
+        }
 
         return [
             "You are an intelligent scheduling assistant for BuildingAI.",
@@ -301,6 +348,7 @@ export class AiScheduleService {
   }
 }`,
             "If the request is ambiguous set missing_fields with required data and provide follow_up_question.",
+            "Note: 'location' is optional. Do not include it in missing_fields.",
         ].join("\n");
     }
 
