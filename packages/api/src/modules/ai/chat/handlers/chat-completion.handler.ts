@@ -401,14 +401,51 @@ export class ChatCompletionCommandHandler {
      * @returns Model options object
      */
     private buildModelOptions(model: AiModel): Record<string, any> {
-        const fields = Object.keys(model.modelConfig).filter(
-            (item) => model.modelConfig[item].enable,
-        );
+        // modelConfig 是数组，需要转换为对象
+        if (!model.modelConfig || !Array.isArray(model.modelConfig)) {
+            this.logger.debug("🔧 模型配置参数: {} (无配置或格式错误)");
+            return {};
+        }
 
-        const opts = fields.map((item) => ({
-            [item]: model.modelConfig[item].value,
-        }));
+        const opts = model.modelConfig
+            .filter((item) => item.enable && item.field) // 过滤启用的配置并确保 field 存在
+            .map((item) => {
+                let fieldName = item.field;
+                let fieldValue = item.value;
 
-        return Object.assign({}, ...opts);
+                // 移除字段名中多余的引号
+                if (fieldName.startsWith('"') && fieldName.endsWith('"')) {
+                    fieldName = fieldName.slice(1, -1);
+                }
+
+                // 处理特殊值类型
+                if (fieldValue === null) {
+                    // 对于 null 值，跳过该参数（除非是明确需要 null 的参数）
+                    return null;
+                }
+
+                // 尝试解析 JSON 字符串值
+                if (
+                    typeof fieldValue === "string" &&
+                    (fieldValue.startsWith("{") || fieldValue.startsWith("["))
+                ) {
+                    try {
+                        fieldValue = JSON.parse(fieldValue);
+                    } catch (e) {
+                        // 解析失败时保持原字符串值
+                        this.logger.debug(`⚠️ 无法解析参数值 ${fieldName}: ${fieldValue}`);
+                    }
+                }
+
+                return {
+                    [fieldName]: fieldValue,
+                };
+            })
+            .filter((item) => item !== null); // 移除 null 条目
+
+        const result = Object.assign({}, ...opts);
+        this.logger.debug(`🔧 模型配置参数: ${JSON.stringify(result)}`);
+
+        return result;
     }
 }
