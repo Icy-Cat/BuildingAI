@@ -1,0 +1,58 @@
+{
+    "backend": {
+        "config": {
+            "title": "AI 日程助手配置",
+            "description": "管理解析用户日程指令所使用的模型、上下文和系统提示词。",
+            "model": {
+                "title": "解析模型",
+                "description": "选择一个可用的模型来解析自然语言日程指令，建议选择稳定的高质量模型。",
+                "label": "选择解析模型",
+                "helper": "模型将用于 /user-schedule/parse 接口，只有开启的模型才能被选择。"
+            },
+            "temperature": {
+                "label": "回答温度",
+                "description": "温度越低越保守，越高越具创造力，推荐范围 0.0-0.8。"
+            },
+            "contextLimit": {
+                "label": "上下文事件数量",
+                "description": "AI 解析指令时会附带的近期日程数量，用于减少冲突并提供更丰富的背景。"
+            },
+            "systemPrompt": {
+                "title": "系统提示词",
+                "description": "自定义传递给大模型的系统提示词模版，可以结合变量注入当前时间、时区与日程列表。",
+                "label": "提示词模版",
+                "placeholder": "请输入系统提示词模版，支持 {{current_time}} 等变量",
+                "helper": "保留变量占位符可以提升模型可用性，确保提示词中明确输出 JSON 的结构要求。",
+                "preview": "当前模版预览",
+                "example": "You are an intelligent scheduling assistant...\nCurrent server time: {{current_time}}\nUser timezone: {{user_timezone}}\nUpcoming events:\n{{upcoming_events}}\nRespond ONLY with JSON that matches the schema above."
+            },
+            "placeholders": {
+                "title": "可用变量",
+                "description": "以下变量可在系统提示词中使用，系统会在运行时替换为真实值。",
+                "items": [
+                    {
+                        "token": "{{current_time}}",
+                        "description": "当前服务器时间 (ISO 8601)"
+                    },
+                    {
+                        "token": "{{user_timezone}}",
+                        "description": "用户所在时区标识，例如 Asia/Shanghai"
+                    },
+                    {
+                        "token": "{{upcoming_events}}",
+                        "description": "近期日程列表，格式为 id|title|start|end，每行一条"
+                    }
+                ]
+            },
+            "actions": {
+                "refresh": "重新获取配置"
+            },
+            "messages": {
+                "fetchFailed": "获取日程配置失败",
+                "updateSuccess": "日程配置更新成功",
+                "updateFailed": "更新失败，请稍后重试",
+                "modelRequired": "请先选择解析模型"
+            }
+        }
+    }
+}

@@ -212,6 +212,13 @@ const handleAiSend = async () => {
     }
 };
 
+const handleAiPromptKeydown = (event: KeyboardEvent) => {
+    if (event.key !== "Enter") return;
+    if (event.shiftKey || event.ctrlKey || event.metaKey || event.altKey) return;
+    event.preventDefault();
+    handleAiSend();
+};
+
 const confirmAiProposal = () => {
     if (!aiProposal.value) return;
     const payload = convertProposalToForm(aiProposal.value);
@@ -450,6 +457,7 @@ const editAiProposal = () => {
                             class="w-full rounded-lg border border-blue-200 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
                             placeholder="例如：明天上午10点和销售团队开会，总结周报"
                             :disabled="aiLoading"
+                            @keydown="handleAiPromptKeydown"
                             required
                         />
                         <button
