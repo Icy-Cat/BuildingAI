@@ -433,7 +433,7 @@ export class ChatCompletionCommandHandler {
                         fieldValue = JSON.parse(fieldValue);
                     } catch (e) {
                         // 解析失败时保持原字符串值
-                        this.logger.debug(`⚠️ 无法解析参数值 ${fieldName}: ${fieldValue}`);
+                        this.logger.debug(`⚠️ 无法解析参数值 ${fieldName}: ${fieldValue} ${e}`);
                     }
                 }
 

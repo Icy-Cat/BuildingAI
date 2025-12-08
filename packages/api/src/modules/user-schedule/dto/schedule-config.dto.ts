@@ -1,4 +1,4 @@
-import { IsInt, IsNumber, IsOptional, IsString, Max, MaxLength, Min } from "class-validator";
+import { IsBoolean, IsInt, IsNumber, IsOptional, IsString, Max, MaxLength, Min } from "class-validator";
 
 /**
  * 日程助手配置 DTO
@@ -36,4 +36,11 @@ export class ScheduleConfigDto {
     @Min(1)
     @Max(50)
     contextLimit?: number;
+
+    /**
+     * 是否强制模型输出符合 JSON Schema 的结构化响应
+     */
+    @IsOptional()
+    @IsBoolean()
+    schemaOutputEnabled?: boolean;
 }

@@ -120,6 +120,18 @@ export class ConsoleScheduleController {
         return { success: true };
     }
 
+    /**
+     * 获取当前启用的日程响应 Schema
+     */
+    @Get("schema")
+    @Permissions({
+        code: "schema:get",
+        name: "查看日程Schema",
+    })
+    async getSchema(@Query("timezone") timezone?: string) {
+        return this.aiScheduleService.getResponseSchema(timezone);
+    }
+
     private resolveRange(query: QueryUserScheduleDto): { start?: Date; end?: Date } {
         let start: Date | undefined;
         let end: Date | undefined;

@@ -10,7 +10,7 @@ export interface UserScheduleEvent {
     startTime: string;
     endTime: string;
     category: "work" | "personal" | "meeting" | "reminder";
-    priority: "high" | "medium" | "low";
+    priority: "high" | "medium" | "low" | "none";
     isImportant: boolean;
     isUrgent: boolean;
     location?: string;

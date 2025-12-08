@@ -1,10 +1,14 @@
 <script lang="ts" setup>
-import type { ScheduleConfig } from "@buildingai/service/consoleapi/user-schedule";
+import type {
+    ScheduleConfig,
+    ScheduleSchemaDefinition,
+} from "@buildingai/service/consoleapi/user-schedule";
 import {
     apiGetScheduleConfig,
+    apiGetScheduleSchema,
     apiUpdateScheduleConfig,
 } from "@buildingai/service/consoleapi/user-schedule";
-import { computed, defineAsyncComponent, onMounted } from "vue";
+import { computed, defineAsyncComponent, onMounted, ref } from "vue";
 
 const ModelSelect = defineAsyncComponent(() => import("@//components/model-select.vue"));
 
@@ -19,6 +23,8 @@ const defaultConfig: ScheduleConfig = {
 };
 
 const formData = reactive<ScheduleConfig>({ ...defaultConfig });
+const schemaDefinition = ref<ScheduleSchemaDefinition | null>(null);
+const schemaLoadError = ref(false);
 
 type PlaceholderItem = { token: string; description: string };
 
@@ -84,6 +90,22 @@ const { lockFn: fetchConfig, isLock: loadingConfig } = useLockFn(async () => {
     }
 });
 
+const formattedSchemaJson = computed(() =>
+    schemaDefinition.value ? JSON.stringify(schemaDefinition.value.schema, null, 2) : "",
+);
+
+const { lockFn: fetchSchemaPreview, isLock: loadingSchema } = useLockFn(async () => {
+    try {
+        schemaLoadError.value = false;
+        const schema = await apiGetScheduleSchema();
+        schemaDefinition.value = schema;
+    } catch (error) {
+        schemaLoadError.value = true;
+        console.error("Failed to load schedule schema:", error);
+        message.error(t("ai-schedule.backend.config.schema.messages.fetchFailed"));
+    }
+});
+
 const { lockFn: submitForm, isLock: saving } = useLockFn(async () => {
     if (!formData.modelId) {
         message.warning(t("ai-schedule.backend.config.messages.modelRequired"));
@@ -110,7 +132,10 @@ const { lockFn: submitForm, isLock: saving } = useLockFn(async () => {
     }
 });
 
-onMounted(() => fetchConfig());
+onMounted(() => {
+    fetchConfig();
+    fetchSchemaPreview();
+});
 </script>
 
 <template>
@@ -321,6 +346,98 @@ onMounted(() => fetchConfig());
                                 class="flex-1 text-sm text-gray-600 dark:text-gray-300"
                                 v-html="highlightToken(item.description)"
                             ></div>
+                        </div>
+                    </div>
+                </UCard>
+
+                <UCard>
+                    <template #header>
+                        <div class="flex flex-wrap items-start justify-between gap-4">
+                            <div>
+                                <h3 class="text-lg font-semibold">
+                                    {{ t("ai-schedule.backend.config.schema.title") }}
+                                </h3>
+                                <p class="text-sm text-gray-500">
+                                    {{ t("ai-schedule.backend.config.schema.description") }}
+                                </p>
+                            </div>
+                            <UButton
+                                variant="soft"
+                                color="neutral"
+                                size="sm"
+                                icon="i-lucide-refresh-cw"
+                                @click="fetchSchemaPreview"
+                                :loading="loadingSchema"
+                            >
+                                {{ t("ai-schedule.backend.config.schema.actions.refresh") }}
+                            </UButton>
+                        </div>
+                    </template>
+
+                    <div class="space-y-4">
+                        <div
+                            class="space-y-2 rounded-xl border border-gray-100 p-4 dark:border-gray-800 dark:bg-gray-900/40"
+                        >
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                <div>
+                                    <p class="text-xs uppercase tracking-wide text-gray-500">
+                                        {{ t("ai-schedule.backend.config.schema.nameLabel") }}
+                                    </p>
+                                    <p class="font-mono text-sm text-gray-900 dark:text-gray-100">
+                                        {{ schemaDefinition?.name || "—" }}
+                                    </p>
+                                </div>
+                                <UBadge :color="schemaDefinition?.strict ? 'success' : 'neutral'" variant="soft">
+                                    {{
+                                        schemaDefinition?.strict
+                                            ? t("ai-schedule.backend.config.schema.strictEnabled")
+                                            : t("ai-schedule.backend.config.schema.strictDisabled")
+                                    }}
+                                </UBadge>
+                            </div>
+                            <p
+                                class="whitespace-pre-wrap text-xs leading-relaxed text-gray-600 dark:text-gray-300"
+                            >
+                                {{
+                                    schemaDefinition?.summary ||
+                                    t("ai-schedule.backend.config.schema.emptySummary")
+                                }}
+                            </p>
+                            <p
+                                v-if="schemaLoadError"
+                                class="text-xs text-red-500 dark:text-red-400"
+                            >
+                                {{ t("ai-schedule.backend.config.schema.messages.fetchFailed") }}
+                            </p>
+                        </div>
+
+                        <div>
+                            <div class="flex items-center justify-between">
+                                <p class="text-xs uppercase tracking-wide text-gray-500">
+                                    {{ t("ai-schedule.backend.config.schema.jsonTitle") }}
+                                </p>
+                                <span class="text-[11px] text-gray-500">
+                                    {{ t("ai-schedule.backend.config.schema.helper") }}
+                                </span>
+                            </div>
+                            <div
+                                class="mt-2 max-h-[420px] overflow-auto rounded-xl bg-gray-900/90 p-4 text-[11px] leading-relaxed text-emerald-100 dark:bg-black/60"
+                            >
+                                <template v-if="formattedSchemaJson">
+                                    <pre class="whitespace-pre-wrap break-all">
+{{ formattedSchemaJson }}
+                                    </pre>
+                                </template>
+                                <template v-else>
+                                    <p class="text-gray-500">
+                                        {{
+                                            loadingSchema
+                                                ? t("ai-schedule.backend.config.schema.loading")
+                                                : t("ai-schedule.backend.config.schema.emptyJson")
+                                        }}
+                                    </p>
+                                </template>
+                            </div>
                         </div>
                     </div>
                 </UCard>

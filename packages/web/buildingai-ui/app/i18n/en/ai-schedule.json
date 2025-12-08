@@ -44,6 +44,25 @@
                     }
                 ]
             },
+            "schema": {
+                "title": "Response JSON Schema",
+                "description": "The contract enforced when structured output is available. Keep your prompt template aligned with it.",
+                "nameLabel": "Schema Name",
+                "summaryLabel": "Summary",
+                "jsonTitle": "Live Schema",
+                "helper": "Copy the JSON below to test against models or validate tooling.",
+                "strictEnabled": "Strict mode enabled",
+                "strictDisabled": "Strict mode disabled",
+                "emptySummary": "Schema summary not loaded yet",
+                "emptyJson": "Schema payload unavailable",
+                "loading": "Loading schema...",
+                "actions": {
+                    "refresh": "Reload schema"
+                },
+                "messages": {
+                    "fetchFailed": "Failed to load schema"
+                }
+            },
             "actions": {
                 "refresh": "Reload config"
             },

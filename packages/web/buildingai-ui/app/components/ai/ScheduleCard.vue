@@ -36,6 +36,25 @@ const getIntentBadgeColor = (intent: ScheduleProposal["intent"]) => {
     if (intent === "query") return "info";
     return "primary";
 };
+
+const intentLabelMap: Record<ScheduleProposal["intent"], string> = {
+    create: "创建",
+    update: "更新",
+    delete: "删除",
+    query: "查询",
+};
+
+const priorityLabelMap = {
+    high: "高",
+    medium: "中",
+    low: "低",
+    none: "无",
+} as const;
+
+const resolvePriorityLabel = (value?: ScheduleProposal["data"]["priority"]) => {
+    const key = (value ?? "none") as keyof typeof priorityLabelMap;
+    return priorityLabelMap[key] ?? priorityLabelMap.none;
+};
 </script>
 
 <template>
@@ -50,7 +69,7 @@ const getIntentBadgeColor = (intent: ScheduleProposal["intent"]) => {
                 </p>
             </div>
             <UBadge :color="getIntentBadgeColor(proposal.intent)" size="xs">
-                {{ proposal.intent }}
+                {{ intentLabelMap[proposal.intent] }}
             </UBadge>
         </div>
 
@@ -78,8 +97,8 @@ const getIntentBadgeColor = (intent: ScheduleProposal["intent"]) => {
             <div class="grid grid-cols-3 gap-2">
                 <dt class="col-span-1 text-gray-500">优先级</dt>
                 <dd class="col-span-2">
-                    <span class="rounded-md bg-gray-100 px-2 py-0.5 text-xs uppercase">
-                        {{ proposal.data.priority || "medium" }}
+                    <span class="rounded-md bg-gray-100 px-2 py-0.5 text-xs">
+                        {{ resolvePriorityLabel(proposal.data.priority) }}
                     </span>
                 </dd>
             </div>

@@ -1,4 +1,5 @@
 import { getProvider, TextGenerator } from "@buildingai/ai-sdk";
+import { MODEL_FEATURES } from "@buildingai/ai-sdk/interfaces/model-features";
 import { AI_DEFAULT_MODEL } from "@buildingai/constants";
 import { SecretService } from "@buildingai/core/modules/secret/services/secret.service";
 import { InjectRepository } from "@buildingai/db/@nestjs/typeorm";
@@ -20,6 +21,7 @@ import type {
     ScheduleIntent,
     ScheduleProposalPayload,
 } from "../interfaces/ai-schedule.interface";
+import { buildScheduleResponseSchema, type ScheduleSchemaDefinition } from "./schedule-schema.builder";
 import { UserScheduleService } from "./user-schedule.service";
 
 /**
@@ -53,6 +55,7 @@ export class AiScheduleService {
             temperature: config?.temperature ?? 0.2,
             systemPrompt: config?.systemPrompt ?? "",
             contextLimit: config?.contextLimit ?? 5,
+            schemaOutputEnabled: config?.schemaOutputEnabled ?? true,
         };
     }
 
@@ -79,27 +82,57 @@ export class AiScheduleService {
         const timezone = dto.timezone || "Asia/Shanghai";
         const now = dto.now ? new Date(dto.now) : new Date();
 
-        const upcoming = await this.userScheduleService.findUpcomingSchedules(
-            userId,
-            config.contextLimit || 5,
+        const upcoming = await this.userScheduleService.findUpcomingSchedules(userId, config.contextLimit || 5);
+        const schemaDefinition = this.getResponseSchema(timezone);
+        const systemPrompt = this.buildSystemPrompt(
+            now,
+            timezone,
+            upcoming,
+            schemaDefinition,
+            config.systemPrompt,
         );
-        const systemPrompt = this.buildSystemPrompt(now, timezone, upcoming, config.systemPrompt);
+        const shouldUseSchema = this.shouldUseSchema(model, config);
+        const requestPayload: Parameters<TextGenerator["chat"]["create"]>[0] = {
+            model: model.model,
+            temperature: config.temperature ?? 0.2,
+            messages: [
+                {
+                    role: "system",
+                    content: systemPrompt,
+                },
+                {
+                    role: "user",
+                    content: dto.message.trim(),
+                },
+            ],
+        };
+
+        if (shouldUseSchema) {
+            requestPayload.response_format = {
+                type: "json_schema",
+                json_schema: {
+                    name: schemaDefinition.name,
+                    schema: schemaDefinition.schema,
+                    strict: schemaDefinition.strict,
+                },
+            };
+            this.logger.log(
+                `[Parse] Schema enforcement enabled (provider=${model.provider?.provider}, features=${
+                    model.features?.join(",") || "none"
+                })`,
+            );
+        } else {
+            const toggle = config.schemaOutputEnabled ?? true;
+            const reason = toggle ? "missing-structured-output" : "toggle-disabled";
+            this.logger.log(
+                `[Parse] Schema enforcement skipped (${reason}) for provider=${model.provider?.provider}, features=${
+                    model.features?.join(",") || "none"
+                }`,
+            );
+        }
 
         try {
-            const completion = await generator.chat.create({
-                model: model.model,
-                temperature: config.temperature ?? 0.2,
-                messages: [
-                    {
-                        role: "system",
-                        content: systemPrompt,
-                    },
-                    {
-                        role: "user",
-                        content: dto.message.trim(),
-                    },
-                ],
-            });
+            const completion = await generator.chat.create(requestPayload);
 
             const content = completion.choices[0]?.message?.content ?? "";
             const normalized = this.parseAssistantContent(content);
@@ -111,6 +144,11 @@ export class AiScheduleService {
                 requiresClarification: true,
             };
         }
+    }
+
+    getResponseSchema(timezone?: string): ScheduleSchemaDefinition {
+        const resolvedTimezone = timezone || "Asia/Shanghai";
+        return buildScheduleResponseSchema(resolvedTimezone);
     }
 
     /**
@@ -300,6 +338,7 @@ export class AiScheduleService {
         now: Date,
         timezone: string,
         events: UserSchedule[],
+        schema: ScheduleSchemaDefinition,
         customPrompt?: string,
     ): string {
         const eventLines =
@@ -311,12 +350,17 @@ export class AiScheduleService {
                               `${item.id}|${item.title}|${item.startTime.toISOString()}|${item.endTime.toISOString()}`,
                       )
                       .join("\n");
+        const schemaInstructions = this.buildSchemaInstructions(schema);
 
         if (customPrompt) {
-            return customPrompt
-                .replace("{{current_time}}", now.toISOString())
-                .replace("{{user_timezone}}", timezone)
-                .replace("{{upcoming_events}}", eventLines);
+            return (
+                customPrompt
+                    .replace("{{current_time}}", now.toISOString())
+                    .replace("{{user_timezone}}", timezone)
+                    .replace("{{upcoming_events}}", eventLines) +
+                "\n\n" +
+                schemaInstructions
+            );
         }
 
         return [
@@ -325,30 +369,19 @@ export class AiScheduleService {
             `User timezone: ${timezone}`,
             "Upcoming user events (id|title|start|end):",
             eventLines,
-            "Always respond **ONLY** with JSON matching this schema:",
-            `{
-  "reply": "Friendly acknowledgement and short summary for the user",
-  "intent": "create|update|delete|query",
-  "confidence": 0.0-1.0,
-  "follow_up_question": "question when missing_fields is not empty" | null,
-  "missing_fields": ["field name"],
-  "target_event_id": "id for update/delete" | null,
-  "proposal": {
-    "title": "...",
-    "description": "...",
-    "startTime": "ISO timestamp",
-    "endTime": "ISO timestamp",
-    "location": "...",
-    "attendees": "...",
-    "category": "work|personal|meeting|reminder",
-    "priority": "high|medium|low",
-    "isImportant": true|false,
-    "isUrgent": true|false,
-    "timezone": "${timezone}"
-  }
-}`,
-            "If the request is ambiguous set missing_fields with required data and provide follow_up_question.",
-            "Note: 'location' is optional. Do not include it in missing_fields.",
+            "Always respond with machine-parseable JSON that matches the schema below. No commentary or markdown code fences are allowed.",
+            schemaInstructions,
+            "Only set missing_fields (with ['title']) when the user did not supply a title. All other properties, including time and location, are optional—leave them blank if uncertain.",
+        ].join("\n");
+    }
+
+    private buildSchemaInstructions(schema: ScheduleSchemaDefinition): string {
+        return [
+            `Schema name: ${schema.name}`,
+            "Schema summary:",
+            schema.summary,
+            "JSON Schema:",
+            JSON.stringify(schema.schema, null, 2),
         ].join("\n");
     }
 
@@ -390,9 +423,7 @@ export class AiScheduleService {
         const rawMissing = Array.isArray(payload.missing_fields)
             ? (payload.missing_fields as string[])
             : [];
-        const filteredMissing = rawMissing.filter(
-            (field) => field !== "endTime" && field !== "location",
-        );
+        const filteredMissing = rawMissing.includes("title") ? ["title"] : [];
 
         const proposal: AiScheduleProposal | undefined = payload.intent
             ? {
@@ -422,6 +453,14 @@ export class AiScheduleService {
         };
     }
 
+    private shouldUseSchema(model: AiModel, config: ScheduleConfigDto): boolean {
+        const toggleEnabled = config.schemaOutputEnabled ?? true;
+        if (!toggleEnabled) {
+            return false;
+        }
+        return !!model.features?.includes(MODEL_FEATURES.STRUCTURED_OUTPUT);
+    }
+
     private guardCategory(input?: string): UserSchedule["category"] | undefined {
         if (!input) return undefined;
         if (["work", "personal", "meeting", "reminder"].includes(input)) {
@@ -432,7 +471,7 @@ export class AiScheduleService {
 
     private guardPriority(input?: string): UserSchedule["priority"] | undefined {
         if (!input) return undefined;
-        if (["high", "medium", "low"].includes(input)) {
+        if (["high", "medium", "low", "none"].includes(input)) {
             return input as UserSchedule["priority"];
         }
         return undefined;

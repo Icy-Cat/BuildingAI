@@ -44,6 +44,25 @@
                     }
                 ]
             },
+            "schema": {
+                "title": "响应 JSON Schema",
+                "description": "这是系统强制执行的结构化输出契约，可用于校验自定义提示词或排查解析问题。",
+                "nameLabel": "Schema 名称",
+                "summaryLabel": "结构概览",
+                "jsonTitle": "实时 Schema",
+                "helper": "复制下方 JSON 可直接用于调试或在支持结构化输出的模型中测试。",
+                "strictEnabled": "严格模式已启用",
+                "strictDisabled": "严格模式未启用",
+                "emptySummary": "尚未加载 Schema 概览",
+                "emptyJson": "暂无 Schema 内容",
+                "loading": "正在加载 Schema...",
+                "actions": {
+                    "refresh": "刷新 Schema"
+                },
+                "messages": {
+                    "fetchFailed": "获取 Schema 失败"
+                }
+            },
             "actions": {
                 "refresh": "重新获取配置"
             },

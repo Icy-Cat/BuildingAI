@@ -21,6 +21,16 @@ export interface ScheduleConfig {
 }
 
 /**
+ * Response schema definition returned by the AI schedule assistant
+ */
+export interface ScheduleSchemaDefinition {
+    name: string;
+    strict: boolean;
+    summary: string;
+    schema: Record<string, any>;
+}
+
+/**
  * Get current schedule assistant configuration
  * @returns Promise with configuration payload
  */
@@ -35,4 +45,13 @@ export function apiGetScheduleConfig(): Promise<ScheduleConfig> {
  */
 export function apiUpdateScheduleConfig(data: ScheduleConfig): Promise<{ success: boolean }> {
     return useConsolePost("/user-schedule/config", data);
+}
+
+/**
+ * Get the JSON Schema contract used for AI schedule responses
+ * @param timezone Optional timezone to inject into the schema defaults
+ */
+export function apiGetScheduleSchema(timezone?: string): Promise<ScheduleSchemaDefinition> {
+    const params = timezone ? { timezone } : undefined;
+    return useConsoleGet("/user-schedule/schema", params);
 }
