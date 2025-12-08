@@ -34,6 +34,7 @@ const { t } = useI18n();
 const isMobile = useMediaQuery("(max-width: 768px)");
 const { params: URLQueryParams } = useRoute();
 const publishToken = computed(() => (URLQueryParams as Record<string, string>).id || "");
+const router = useRouter(); // 引入 router 实例
 
 const toast = useMessage();
 const overlay = useOverlay();
@@ -497,6 +498,13 @@ useHead({
         { rel: "apple-touch-icon", href: computed(() => agent.value?.avatar || "/favicon.ico") },
     ],
 });
+
+// 添加导航函数
+const navigateToAgentSquare = () => {
+    // 假设智能体广场的路径是 /public/agent/square，并且我们要移除 URL 中的 publishToken
+    router.push({ path: '/public/agent/square' });
+};
+
 </script>
 
 <template>
@@ -504,7 +512,6 @@ useHead({
         class="ai-chat bg-secondary flex h-full min-h-0 items-center justify-center rounded-l-xl p-2"
         :class="{ 'p-0!': isMobile }"
     >
-        <!-- 左侧会话列表 -->
         <div class="bg-secondary h-full flex-none">
             <PublicAgentChatsList
                 :agent="agent"
@@ -516,12 +523,10 @@ useHead({
             />
         </div>
 
-        <!-- 右侧聊天区域 -->
         <div
             class="bg-background flex h-full min-h-0 w-full flex-col items-center rounded-xl"
             :class="{ 'rounded-none!': isMobile }"
         >
-            <!-- 加载状态 -->
             <div v-if="agentLoading" class="flex h-full w-full items-center justify-center">
                 <div class="flex items-center gap-3">
                     <UIcon name="i-lucide-loader-2" class="text-primary size-6 animate-spin" />
@@ -529,7 +534,6 @@ useHead({
                 </div>
             </div>
 
-            <!-- 错误状态 -->
             <div v-else-if="agentError" class="flex h-full w-full items-center justify-center">
                 <div class="text-center">
                     <UIcon name="i-lucide-alert-circle" class="text-error mx-auto mb-4 size-12" />
@@ -540,11 +544,21 @@ useHead({
                 </div>
             </div>
 
-            <!-- 聊天界面 -->
             <template v-else-if="agent">
-                <div class="flex h-12 w-full items-center justify-center"></div>
+                <div class="flex h-12 w-full items-center justify-between px-4">
+                    <div class="flex items-center gap-2">
+                         <span class="text-lg font-semibold">{{ agent.name }}</span>
+                    </div>
 
-                <!-- 聊天内容区域 -->
+                    <UButton
+                        icon="i-lucide-squares-2x2"
+                        :label="t('ai-agent.frontend.chat.agentSquare')"
+                        color="primary"
+                        variant="ghost"
+                        size="sm"
+                        @click="navigateToAgentSquare"
+                    />
+                </div>
                 <BdScrollArea
                     class="h-full min-h-0 w-full"
                     type="auto"
@@ -558,7 +572,6 @@ useHead({
                         content-class="max-w-[800px] w-full space-y-3 p-4 lg:py-4"
                         @load-more="loadMoreMessages"
                     >
-                        <!-- 开场白与提问建议 -->
                         <ChatsMessages
                             v-if="
                                 messages.length === 0 &&
@@ -606,7 +619,6 @@ useHead({
                             </template>
                         </ChatsMessages>
 
-                        <!-- 聊天消息 -->
                         <ChatsMessages
                             v-if="messages.length !== 0"
                             :messages="messages as AiMessage[]"
@@ -682,7 +694,6 @@ useHead({
                                                 agent.showReference
                                             "
                                         >
-                                            <!-- 知识库引用来源 -->
                                             <div class="my-2 flex items-center gap-1">
                                                 <span
                                                     class="text-muted-foreground flex-none text-xs"
@@ -705,7 +716,6 @@ useHead({
                                         </template>
                                     </template>
                                 </BdMarkdown>
-                                <!-- 提问建议 -->
                                 <div
                                     v-if="
                                         message.metadata?.suggestions &&
@@ -728,7 +738,6 @@ useHead({
                             </template>
                         </ChatsMessages>
 
-                        <!-- 表单变量输入 -->
                         <div
                             v-if="agent.formFields && agent.formFields.length > 0"
                             class="bg-background shadow-default my-6 w-full rounded-2xl"
@@ -783,9 +792,7 @@ useHead({
                     </BdChatScroll>
                 </BdScrollArea>
 
-                <!-- 输入区域 -->
                 <div class="w-full max-w-[800px] p-4 lg:py-2">
-                    <!-- 快捷指令 -->
                     <div v-if="agent.quickCommands?.length" class="mb-3">
                         <div class="flex flex-wrap gap-2">
                             <UButton
@@ -802,7 +809,6 @@ useHead({
                         </div>
                     </div>
 
-                    <!-- 输入框 -->
                     <ChatsPrompt
                         v-model="input"
                         v-model:file-list="files"

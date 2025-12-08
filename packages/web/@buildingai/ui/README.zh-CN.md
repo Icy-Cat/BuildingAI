@@ -635,8 +635,28 @@ import { BdEditor, BdMarkdown, BdCard } from "@buildingai/ui";
 
 ```typescript
 // nuxt.config.ts
+import { defineNuxtConfig } from 'nuxt';
+
 export default defineNuxtConfig({
     css: ["@buildingai/ui/styles/globals.css"],
+
+    // --- 添加 Vite 反向代理配置 ---
+    vite: {
+        server: {
+            proxy: {
+                // 拦截所有以 '/api' 开头的请求
+                '/api': {
+                    // 将请求转发到您的后端地址：localhost:4090
+                    target: 'http://localhost:4090', 
+                    // 允许跨域
+                    changeOrigin: true, 
+                    // 后端是 http，所以 secure 设置为 false 比较安全
+                    secure: false, 
+                }
+            }
+        }
+    }
+    // -----------------------------
 });
 ```
 

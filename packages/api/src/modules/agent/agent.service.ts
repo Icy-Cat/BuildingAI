@@ -3,74 +3,78 @@ import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { firstValueFrom } from 'rxjs';
 
-// 顾客订单格式（前端传过来的“点餐信息”）
+// 顾客订单格式
 interface AgentChatDto {
-  userMessage: string; // 顾客点的菜（用户输入的问题）
-  userId?: string; // 顾客编号（可选，用于区分不同用户）
+  userMessage: string;
+  userId?: string;
 }
 
-// 后厨回复格式（Coze 返回的“菜品信息”）
+// 后厨回复格式
 interface CozeResponse {
-  code: number; // 0 = 成功，其他 = 失败
-  msg: string; // 错误提示（比如“没这个菜”）
+  code: number;
+  msg: string;
   data: {
     messages: Array<{
-      role: 'assistant' | 'user'; // 谁发的消息（后厨/顾客）
-      content: string; // 消息内容（菜品/订单）
+      role: 'assistant' | 'user';
+      content: string;
     }>;
   };
 }
 
 @Injectable()
 export class AgentService {
-  // 从配置文件拿“后厨地址、门禁卡、菜谱编号”
   private readonly cozeApiKey: string;
   private readonly cozeAgentId: string;
   private readonly cozeBaseUrl: string;
+  private readonly cozeChatEndpoint: string;
 
   constructor(
-    private readonly httpService: HttpService, // 注入“手机”（发请求）
-    private readonly configService: ConfigService, // 注入“配置读取工具”
+    private readonly httpService: HttpService,
+    private readonly configService: ConfigService,
   ) {
-    // 读取配置（后续写在 .env 文件里）
+    // 读取配置
     this.cozeApiKey = this.configService.get<string>('COZE_API_KEY');
     this.cozeAgentId = this.configService.get<string>('COZE_AGENT_ID');
     this.cozeBaseUrl = this.configService.get<string>('COZE_API_BASE_URL');
+    this.cozeChatEndpoint = this.configService.get<string>('COZE_CHAT_ENDPOINT');
 
-    // 检查“凭证”是否齐全（没门禁卡不让上岗）
-    if (!this.cozeApiKey || !this.cozeAgentId || !this.cozeBaseUrl) {
-      throw new Error('Coze 凭证没准备好！请检查 .env 文件');
+    // 检查凭证是否齐全
+    if (!this.cozeApiKey || !this.cozeAgentId || !this.cozeBaseUrl || !this.cozeChatEndpoint) {
+      throw new Error('Coze 凭证没准备好！请检查 .env 文件中的 COZE_API_BASE_URL, COZE_CHAT_ENDPOINT 等配置');
     }
   }
 
-  // 核心工作流程：接单 → 传给后厨 → 取餐 → 交给前厅
+  // 核心工作流程
   async chatWithAgent(dto: AgentChatDto): Promise<string> {
     try {
-      // 1. 整理订单格式（按后厨要求写“点餐单”）
+      // 1. 整理订单格式
       const requestData = {
-        agent_id: this.cozeAgentId, // 菜谱编号
-        user: { user_id: dto.userId || 'default_user' }, // 顾客编号
-        messages: [{ role: 'user', content: dto.userMessage }], // 订单内容
-        stream: false, // 不要“边做边送”（同步取餐）
+        agent_id: this.cozeAgentId,
+        user: dto.userId ? { user_id: dto.userId } : { user_id: 'default_user' },
+        messages: [{ role: 'user', content: dto.userMessage }],
+        stream: false,
       };
+      
+      // 修复：确保拼接后的 URL 是完整的 Coze API 地址
+      const fullCozeUrl = `${this.cozeBaseUrl}${this.cozeChatEndpoint}`;
 
       // 2. 打电话给后厨（调用 Coze API）
       const response = await firstValueFrom(
-        this.httpService.post<CozeResponse>(this.cozeBaseUrl, requestData, {
+        this.httpService.post<CozeResponse>(fullCozeUrl, requestData, {
           headers: {
-            'Authorization': `Bearer ${this.cozeApiKey}`, // 出示门禁卡
-            'Content-Type': 'application/json', // 订单格式是 JSON
+            'Authorization': `Bearer ${this.cozeApiKey}`,
+            'Content-Type': 'application/json',
           },
         }),
       );
 
-      // 3. 处理后厨回复（取餐）
+      // 3. 处理后厨回复
       const cozeData = response.data;
       if (cozeData.code !== 0) {
         throw new Error(`后厨说：${cozeData.msg}`);
       }
 
-      // 4. 提取菜品（找后厨的最后一条回复）
+      // 4. 提取菜品
       const agentReply = cozeData.data.messages.findLast(
         (msg) => msg.role === 'assistant',
       );

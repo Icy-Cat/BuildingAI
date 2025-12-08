@@ -29,7 +29,8 @@ import { APP_GUARD } from "@nestjs/core";
 import { ServeStaticModule } from "@nestjs/serve-static";
 import { existsSync } from "fs";
 import { join } from "path";
-
+import { HttpModule } from '@nestjs/axios'; // 新增：给服务员配手机
+import { AgentModule } from './agent/agent.module'; // 新增：服务员入职登记
 import { AiModule } from "./ai/ai.module";
 import { ConfigModule as AppConfigModule } from "./config/config.module";
 import { DecorateModule } from "./decorate/decorate.module";

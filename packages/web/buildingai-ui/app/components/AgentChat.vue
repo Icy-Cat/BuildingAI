@@ -1,7 +1,6 @@
 <template>
   <div class="chat-box">
     <h3>AI 助手（对接 Coze）test</h3>
-    <!-- 聊天记录（点餐记录+菜品） -->
     <div class="chat-history">
       <div 
         v-for="(msg, idx) in chatHistory" 
@@ -12,7 +11,6 @@
         <span class="content">{{ msg.content }}</span>
       </div>
     </div>
-    <!-- 点餐输入框（提交订单） -->
     <div class="chat-input">
       <textarea
         v-model="userInput"
@@ -54,12 +52,26 @@ const sendMsg = async () => {
       userId: 'test_user_123', // 可替换成你的系统用户 ID（没有就留空）
     });
 
-    // 3. 接收菜品（Agent 回复）
-    const agentReply = res.data.data.reply;
-    chatHistory.value.push({ role: 'assistant', content: agentReply });
+    // --- 修复后的代码开始：安全获取回复 ---
+    const responseData = res.data?.data; // 安全地获取 res.data.data
+
+    // 3. 接收菜品（Agent 回复）- 检查数据结构是否符合预期
+    if (responseData && responseData.reply) {
+      // 成功获取回复内容
+      chatHistory.value.push({ role: 'assistant', content: responseData.reply });
+    } else {
+      // 响应 200 OK，但缺少 reply 字段（业务失败或格式不符）
+      // 尝试获取后端返回的 message 字段作为错误提示
+      const errorMsg = res.data.message || '点餐失败：后端返回数据格式不正确或缺少回复内容。';
+      chatHistory.value.push({ role: 'assistant', content: errorMsg });
+      console.error('点餐失败：后端响应缺少回复数据', res.data);
+    }
+    // --- 修复后的代码结束 ---
+
   } catch (err) {
-    chatHistory.value.push({ role: 'assistant', content: '调用失败，请稍后重试～' });
-    console.error('点餐失败：', err);
+    // HTTP 请求失败 (如 4xx/5xx 状态码或网络错误)
+    chatHistory.value.push({ role: 'assistant', content: '调用失败，请检查网络或服务器状态～' });
+    console.error('点餐失败（网络或服务器）：', err);
   } finally {
     isLoading.value = false;
   }
