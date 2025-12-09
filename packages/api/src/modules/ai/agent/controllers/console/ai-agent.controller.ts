@@ -9,6 +9,7 @@ import type { Response } from "express";
 import {
     AgentChatDto,
     CreateAgentDto,
+    ImportCozeAgentDto,
     PublishAgentDto,
     QueryAgentDto,
     QueryAgentStatisticsDto,
@@ -18,15 +19,65 @@ import { AgentTagsDto } from "../../dto/agent/update-agent-tags.dto";
 import { NoBillingStrategy } from "../../interfaces/billing-strategy.interface";
 import { AiAgentService } from "../../services/ai-agent.service";
 import { AiAgentChatService } from "../../services/ai-agent-chat.service";
+import { CozeService } from "../../services/coze.service";
 
 @ConsoleController("ai-agent", "智能体")
 export class AiAgentConsoleController {
     constructor(
         private readonly AiAgentService: AiAgentService,
         private readonly AiAgentChatService: AiAgentChatService,
+        private readonly CozeService: CozeService,
     ) {}
 
     // ========== 智能体管理相关接口 ==========
+
+    /**
+     * 获取Coze智能体列表
+     */
+    @Get("coze/list")
+    @Permissions({
+        code: "create",
+        name: "获取Coze智能体列表",
+    })
+    async listCozeBots(@Query("page") page: number = 1, @Query("pageSize") pageSize: number = 20) {
+        return this.CozeService.listBots(page, pageSize);
+    }
+
+    /**
+     * 导入Coze智能体
+     */
+    @Post("import/coze")
+    @Permissions({
+        code: "create",
+        name: "导入Coze智能体",
+    })
+    async importCozeBot(@Body() dto: ImportCozeAgentDto, @Playground() user: UserPlayground) {
+        const createDto: CreateAgentDto = {
+            name: dto.name,
+            description: dto.description,
+            avatar: dto.avatar,
+            createMode: "coze",
+            thirdPartyIntegration: {
+                coze: {
+                    botId: dto.cozeBotId,
+                },
+            },
+        };
+
+        // 创建智能体
+        const agent = await this.AiAgentService.createAgent(createDto, user);
+
+        await this.AiAgentService.publishAgent(agent.id, {
+            publishConfig: {
+                allowOrigins: [],
+                rateLimitPerMinute: 60,
+                showBranding: true,
+                allowDownloadHistory: false,
+            },
+        });
+
+        return agent;
+    }
 
     /**
      * 创建智能体

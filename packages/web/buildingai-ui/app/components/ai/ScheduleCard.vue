@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed } from "vue";
 import type { ScheduleProposal } from "@buildingai/service/webapi/user-schedule";
+import { computed } from "vue";
 
 const props = defineProps<{
     proposal: ScheduleProposal;

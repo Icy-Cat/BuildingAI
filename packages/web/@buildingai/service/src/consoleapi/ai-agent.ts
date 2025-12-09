@@ -1094,3 +1094,37 @@ export function apiConsoleSetAgentDecorate(
 export function apiGetAgentDecorate(): Promise<AgentDecorateConfig> {
     return useWebGet("/agent-decorate");
 }
+
+// ==================== Coze Integration APIs ====================
+
+export interface CozeBot {
+    id: string;
+    name: string;
+    description?: string;
+    icon_url?: string;
+    [key: string]: any;
+}
+
+export interface ImportCozeAgentParams {
+    cozeBotId: string;
+    name: string;
+    description?: string;
+    avatar?: string;
+}
+
+/**
+ * Get Coze Bot List
+ */
+export function apiGetCozeBotList(params: {
+    page: number;
+    pageSize: number;
+}): Promise<PaginationResult<CozeBot>> {
+    return useConsoleGet("/ai-agent/coze/list", params);
+}
+
+/**
+ * Import Coze Agent
+ */
+export function apiImportCozeAgent(data: ImportCozeAgentParams): Promise<Agent> {
+    return useConsolePost("/ai-agent/import/coze", data);
+}

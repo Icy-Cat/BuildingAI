@@ -1,0 +1,24 @@
+# Tasks for Import Coze Agent
+
+- [x] **Backend: Coze Configuration** <!-- id: 1 -->
+    - Add `COZE_API_BASE`, `COZE_API_TOKEN`, `COZE_SPACE_ID` to configuration/env.
+    - Create `CozeService` to handle API requests (List Bots, Chat).
+- [x] **Backend: Management API** <!-- id: 2 -->
+    - Implement `GET /console/api/ai-agent/coze/list` to fetch bots from Coze Space.
+    - Implement `POST /console/api/ai-agent/import/coze` to create/update agent with `cozeBotId`.
+    - Update `CreateAgentDto` or `Agent` entity to support `thirdPartyIntegration` or `provider` field.
+- [x] **Backend: Chat Proxy Logic** <!-- id: 3 -->
+    - Modify `AiAgentChatService` to check for Coze provider.
+    - Implement `chatWithCoze` method to stream requests to Coze v3 API.
+    - Implement response adapter to convert Coze SSE to BuildingAI SSE.
+- [x] **Frontend: Import UI** <!-- id: 4 -->
+    - Update `agent-dsl-import.vue`:
+        - Add "Coze" tab.
+        - Fetch and display list of Coze bots (with search/pagination if needed).
+        - Selection logic and "Import" action.
+- [x] **Frontend: Chat UI** <!-- id: 5 -->
+    - Ensure Chat UI works seamlessly with Coze-backed agents (no special changes expected if backend stream is compatible, but verify).
+- [x] **Testing** <!-- id: 6 -->
+    - Verify listing bots from configured space.
+    - Verify importing a bot creates a valid record.
+    - Verify chatting with the imported bot routes to Coze and returns responses.

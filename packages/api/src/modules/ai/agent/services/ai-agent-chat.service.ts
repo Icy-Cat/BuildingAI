@@ -28,6 +28,7 @@ import { UserUtil } from "../utils/user.util";
 // 导入服务依赖
 import { AiAgentService } from "./ai-agent.service";
 import { AiAgentChatRecordService } from "./ai-agent-chat-record.service";
+import { CozeService } from "./coze.service";
 
 /**
  * 重构后的智能体聊天服务
@@ -61,6 +62,7 @@ export class AiAgentChatService extends BaseService<AgentChatRecord> {
         private readonly billingHandler: BillingHandler,
         private readonly responseHandler: ResponseHandler,
         private readonly mcpServerHandler: McpServerHandler,
+        private readonly CozeService: CozeService,
     ) {
         super(chatRecordRepository);
     }
@@ -101,6 +103,22 @@ export class AiAgentChatService extends BaseService<AgentChatRecord> {
 
         // 初始化聊天环境
         const { finalConfig, conversationRecord } = await this.initializeChat(agentId, dto, user);
+
+        // 检查是否是Coze智能体
+        if (
+            finalConfig.createMode === "coze" &&
+            (finalConfig.thirdPartyIntegration as any)?.coze?.botId
+        ) {
+            return this.handleCozeChat(
+                finalConfig,
+                dto,
+                user,
+                responseMode,
+                res,
+                conversationRecord,
+            );
+        }
+
         let conversationId = conversationRecord?.id || dto.conversationId;
 
         // 获取最后一条用户消息
@@ -495,14 +513,81 @@ export class AiAgentChatService extends BaseService<AgentChatRecord> {
     }
 
     /**
+     * 处理Coze智能体聊天
+     */
+    private async handleCozeChat(
+        agent: Agent,
+        dto: AgentChatDto,
+        user: UserPlayground,
+        responseMode: "blocking" | "streaming",
+        res: Response | undefined,
+        conversationRecord: AgentChatRecord | null,
+    ) {
+        const botId = (agent.thirdPartyIntegration as any)?.coze?.botId;
+        if (!botId) {
+            throw new Error("Coze Bot ID not found in agent configuration");
+        }
+
+        const userId = user.id;
+        const conversationId = conversationRecord?.id;
+
+        // Get last user message
+        const lastMessage = dto.messages.filter((m) => m.role === "user").pop();
+        if (!lastMessage) {
+            throw new Error("No user message found");
+        }
+        const messageContent =
+            typeof lastMessage.content === "string"
+                ? lastMessage.content
+                : extractTextFromMessageContent(lastMessage.content);
+
+        if (responseMode === "streaming") {
+            const stream = await this.CozeService.chat(
+                botId,
+                userId,
+                messageContent,
+                conversationId,
+            );
+
+            let fullResponse = "";
+
+            for await (const part of stream) {
+                if (part.event === "conversation.message.delta") {
+                    const content = part.data.content;
+                    fullResponse += content;
+                    res!.write(`data: ${JSON.stringify({ type: "chunk", data: content })}\n\n`);
+                } else if (part.event === "conversation.message.completed") {
+                    // Message completed
+                }
+            }
+
+            // Save bot message
+            if (conversationRecord) {
+                await this.messageHandler.saveAssistantMessage(
+                    conversationRecord.id,
+                    agent.id,
+                    userId,
+                    fullResponse,
+                    {
+                        promptTokens: 0,
+                        completionTokens: 0,
+                        totalTokens: 0,
+                    },
+                );
+            }
+
+            res!.write("data: [DONE]\n\n");
+            res!.end();
+        } else {
+            throw new Error("Blocking mode not supported for Coze agents yet");
+        }
+    }
+
+    /**
      * 限制消息数量以适应上下文长度
      */
     private limitMessagesByContext(messages: ChatMessage[], maxContext?: number): ChatMessage[] {
         if (!maxContext || messages.length <= maxContext) return messages;
         return messages.slice(-maxContext);
     }
-
-    /**
-     * 检查是否为匿名用户
-     */
 }

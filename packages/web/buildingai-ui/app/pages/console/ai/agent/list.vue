@@ -13,6 +13,7 @@ const AgentDecorate = defineAsyncComponent(() => import("./components/agent-deco
 const AgentModal = defineAsyncComponent(() => import("./components/agent-modal.vue"));
 const TemplateDrawer = defineAsyncComponent(() => import("./components/template-drawer.vue"));
 const AgentDslImport = defineAsyncComponent(() => import("./components/agent-dsl-import.vue"));
+const AgentCozeImport = defineAsyncComponent(() => import("./components/agent-coze-import.vue"));
 
 const toast = useMessage();
 const { t } = useI18n();
@@ -165,6 +166,18 @@ const handleImportAgent = async () => {
     }
 };
 
+const handleImportCozeAgent = async () => {
+    const modal = overlay.create(AgentCozeImport);
+    const instance = modal.open();
+    const shouldRefresh = await instance.result;
+    if (shouldRefresh) {
+        searchForm.page = 1;
+        searchForm.pageSize = 15;
+        loading.value = false;
+        await getLists();
+    }
+};
+
 const handleUpdateTags = async (agent: Agent, tags: string[]) => {
     const currentTagIds = agent.tags?.map((tag) => tag.id) ?? [];
     const newTagIds = tags;
@@ -289,6 +302,15 @@ onMounted(() => getLists());
                                 size="sm"
                                 :label="$t('ai-agent.backend.dslImport.import')"
                                 @click.stop="handleImportAgent"
+                            />
+                            <UButton
+                                color="neutral"
+                                variant="ghost"
+                                class="w-full"
+                                icon="i-lucide-bot"
+                                size="sm"
+                                label="从Coze导入"
+                                @click.stop="handleImportCozeAgent"
                             />
                         </div>
                     </div>

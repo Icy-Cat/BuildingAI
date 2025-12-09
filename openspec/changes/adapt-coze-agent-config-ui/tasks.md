@@ -1,0 +1,25 @@
+# Tasks for Adapt Coze Agent Configuration UI
+
+- [ ] **Frontend: Identify Coze Agent** <!-- id: 1 -->
+    -   In `agent-configuration.vue`, add logic to determine if the current agent is a Coze agent (e.g., check `agent.provider === 'coze'` or `agent.metadata.cozeBotId`).
+- [ ] **Frontend: Adapt UI Layout** <!-- id: 2 -->
+    -   Create a "Coze Mode" view or state in `agent-configuration.vue`.
+    -   **Hide/Disable**:
+        -   Model Selector
+        -   Prompt Editor
+        -   Advanced Settings (Temperature, etc.)
+    -   **Add**:
+        -   Banner/Indicator: "This agent is managed via Coze."
+        -   Display Coze Bot ID.
+        -   "Edit in Coze" button (opens Coze URL).
+        -   "Sync Configuration" button (calls import/sync API).
+- [ ] **Backend: Sync Endpoint** <!-- id: 4 -->
+    -   Implement `POST /console/api/ai-agent/:id/sync-coze`.
+    -   Use `CozeService.getBot` (wrapping `GET /v1/bot/retrieve`) to fetch metadata.
+    -   Update agent entity with:
+        -   Basic info: name, description, avatar.
+        -   Onboarding: openingStatement, openingQuestions.
+        -   Config: autoQuestions (enabled status).
+        -   Variables: formFields (transform from user_input_form).
+- [ ] **Frontend: Verify Routing** <!-- id: 3 -->
+    -   Ensure `/console/agent/:id/configuration` loads correctly for Coze agents without errors (e.g., missing model config shouldn't crash it).

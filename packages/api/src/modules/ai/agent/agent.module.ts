@@ -24,6 +24,7 @@ import { AiAgentChatsMessageService } from "./services/ai-agent-chat-message.ser
 import { AiAgentChatRecordService } from "./services/ai-agent-chat-record.service";
 import { AiAgentTemplateService } from "./services/ai-agent-template.service";
 import { AiAgentPublicChatService } from "./services/ai-agent-v1-chat.service";
+import { CozeService } from "./services/coze.service";
 
 /**
  * 智能体模块
@@ -60,6 +61,7 @@ import { AiAgentPublicChatService } from "./services/ai-agent-v1-chat.service";
         AiAgentChatsMessageService,
         AiAgentPublicChatService,
         AiAgentTemplateService,
+        CozeService,
     ],
     exports: [
         AiAgentService,
@@ -69,6 +71,7 @@ import { AiAgentPublicChatService } from "./services/ai-agent-v1-chat.service";
         AiAgentChatsMessageService,
         AiAgentTemplateService,
         AiAgentPublicChatService,
+        CozeService,
     ],
 })
 export class AiAgentModule {}

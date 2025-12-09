@@ -249,6 +249,15 @@ export class ThirdPartyIntegrationConfigDto {
     variableMapping?: Record<string, string>;
 
     /**
+     * Coze 配置
+     */
+    @IsOptional()
+    @IsObject()
+    coze?: {
+        botId: string;
+    };
+
+    /**
      * 是否使用平台的对话历史管理
      */
     @IsOptional()

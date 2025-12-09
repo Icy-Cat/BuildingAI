@@ -502,9 +502,8 @@ useHead({
 // 添加导航函数
 const navigateToAgentSquare = () => {
     // 假设智能体广场的路径是 /public/agent/square，并且我们要移除 URL 中的 publishToken
-    router.push({ path: '/public/agent/square' });
+    router.push({ path: "/public/agent/square" });
 };
-
 </script>
 
 <template>
@@ -547,7 +546,7 @@ const navigateToAgentSquare = () => {
             <template v-else-if="agent">
                 <div class="flex h-12 w-full items-center justify-between px-4">
                     <div class="flex items-center gap-2">
-                         <span class="text-lg font-semibold">{{ agent.name }}</span>
+                        <span class="text-lg font-semibold">{{ agent.name }}</span>
                     </div>
 
                     <UButton

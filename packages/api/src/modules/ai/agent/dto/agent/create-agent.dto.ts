@@ -160,3 +160,36 @@ export class ImportAgentDto {
     @IsUUID(4, { message: "创建者ID必须是有效的UUID" })
     createBy?: string;
 }
+
+/**
+ * 导入Coze智能体DTO
+ */
+export class ImportCozeAgentDto {
+    /**
+     * Coze Bot ID
+     */
+    @IsNotEmpty({ message: "Coze Bot ID不能为空" })
+    @IsString({ message: "Coze Bot ID必须是字符串" })
+    cozeBotId: string;
+
+    /**
+     * 智能体名称
+     */
+    @IsNotEmpty({ message: "智能体名称不能为空" })
+    @IsString({ message: "智能体名称必须是字符串" })
+    name: string;
+
+    /**
+     * 智能体描述
+     */
+    @IsOptional()
+    @IsString({ message: "智能体描述必须是字符串" })
+    description?: string;
+
+    /**
+     * 智能体头像
+     */
+    @IsOptional()
+    @IsString({ message: "智能体头像必须是字符串" })
+    avatar?: string;
+}

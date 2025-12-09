@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { DialogDescription, DialogTitle } from "reka-ui";
 import type { BdModalEmits, BdModalProps } from "./types";
 
 /**
@@ -132,12 +133,15 @@ defineExpose({ close, open });
                     <div class="pr- flex items-center justify-between">
                         <slot name="title">
                             <div>
-                                <h2 class="text-lg font-medium md:text-xl">
+                                <DialogTitle class="text-lg font-medium md:text-xl">
                                     {{ title }}
-                                </h2>
-                                <p v-if="description" class="text-muted-foreground mt-1 text-sm">
+                                </DialogTitle>
+                                <DialogDescription
+                                    v-if="description"
+                                    class="text-muted-foreground mt-1 text-sm"
+                                >
                                     {{ description }}
-                                </p>
+                                </DialogDescription>
                             </div>
                         </slot>
                         <UButton

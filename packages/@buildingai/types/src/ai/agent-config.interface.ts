@@ -170,4 +170,8 @@ export interface ThirdPartyIntegrationConfig {
     variableMapping?: Record<string, string>;
     /** 是否使用平台的对话历史管理 */
     useExternalConversation?: boolean;
+    /** Coze 配置 */
+    coze?: {
+        botId: string;
+    };
 }

@@ -122,7 +122,7 @@ definePageMeta({
 </script>
 
 <template>
-    <div class="container mx-auto flex h-full flex-col relative">
+    <div class="relative container mx-auto flex h-full flex-col">
         <!-- 原有页面内容 -->
         <div class="bg-background sticky top-0 z-10 flex flex-col gap-3 p-4">
             <div class="flex items-center justify-between">
@@ -265,7 +265,7 @@ definePageMeta({
 
         <!-- 新增：AI助手聊天跳转按钮（固定在右下角） -->
         <button
-            class="agent-chat-btn fixed bottom-6 right-6 z-20 flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-full shadow-lg hover:bg-primary/90 transition-all duration-300"
+            class="agent-chat-btn bg-primary hover:bg-primary/90 fixed right-6 bottom-6 z-20 flex items-center gap-2 rounded-full px-6 py-3 text-white shadow-lg transition-all duration-300"
             @click="goToAgentChat"
         >
             <UIcon name="i-lucide-message-square-text" class="size-5" />

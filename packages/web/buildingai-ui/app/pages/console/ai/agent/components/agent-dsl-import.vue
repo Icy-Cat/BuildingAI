@@ -15,28 +15,29 @@ const url = shallowRef("");
 const { t } = useI18n();
 
 const { lockFn: submitImport, isLock } = useLockFn(async () => {
-    if (activeTab.value === "file" && !dslFileURL.value) {
-        toast.error(t("ai-agent.backend.dslImport.errors.fileRequired"));
-        return;
-    }
-
-    if (activeTab.value === "url" && !url.value) {
-        toast.error(t("ai-agent.backend.dslImport.errors.urlRequired"));
-
-        return;
-    } else if (activeTab.value === "url" && url.value) {
+    if (activeTab.value === "file") {
+        if (!dslFileURL.value) {
+            toast.error(t("ai-agent.backend.dslImport.errors.fileRequired"));
+            return;
+        }
+        await apiImportAgentDsl({
+            content: dslFileURL.value,
+            format: "yaml",
+        });
+    } else if (activeTab.value === "url") {
+        if (!url.value) {
+            toast.error(t("ai-agent.backend.dslImport.errors.urlRequired"));
+            return;
+        }
         const result = await apiUploadRemoteFile({
             url: url.value,
             description: `Remote file: ${url.value}`,
         });
-
-        url.value = result.url;
+        await apiImportAgentDsl({
+            content: result.url,
+            format: "yaml",
+        });
     }
-
-    await apiImportAgentDsl({
-        content: activeTab.value === "file" ? dslFileURL.value : url.value,
-        format: "yaml",
-    });
 
     toast.success(t("ai-agent.backend.dslImport.success"));
     emits("close", true);
