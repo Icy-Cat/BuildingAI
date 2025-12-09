@@ -813,6 +813,34 @@
                                 "pluginPackName": null
                             }
                         ]
+                    },
+                    {
+                        "name": "console-menu.aiConversation.scheduleConfig",
+                        "code": "conversation-schedule-config",
+                        "path": "schedule",
+                        "icon": "",
+                        "component": "/console/conversation/schedule",
+                        "permissionCode": "user-schedule:config",
+                        "sort": 20,
+                        "isHidden": 0,
+                        "type": 2,
+                        "sourceType": 1,
+                        "pluginPackName": null,
+                        "children": [
+                            {
+                                "name": "console-common.save",
+                                "code": "conversation-schedule-config-save",
+                                "path": "",
+                                "icon": "",
+                                "component": "",
+                                "permissionCode": "user-schedule:update-config",
+                                "sort": 0,
+                                "isHidden": 0,
+                                "type": 3,
+                                "sourceType": 1,
+                                "pluginPackName": null
+                            }
+                        ]
                     }
                 ]
             },

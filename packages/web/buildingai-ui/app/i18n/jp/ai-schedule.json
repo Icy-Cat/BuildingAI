@@ -1,0 +1,58 @@
+{
+    "backend": {
+        "config": {
+            "title": "AIスケジュールアシスタント設定",
+            "description": "日程リクエストを解析する際に使用するモデル・コンテキスト・システムプロンプトを管理します。",
+            "model": {
+                "title": "解析モデル",
+                "description": "自然言語の指示を理解するための利用可能なモデルを選択してください。",
+                "label": "モデルを選択",
+                "helper": "有効化されているモデルのみ選択でき、/user-schedule/parse API で使用されます。"
+            },
+            "temperature": {
+                "label": "応答温度",
+                "description": "値が低いほど保守的、高いほど創造的になります。推奨レンジ: 0.0〜0.8。"
+            },
+            "contextLimit": {
+                "label": "コンテキスト件数",
+                "description": "解析時に参照する直近の予定数です。衝突を避けるための背景情報として利用されます。"
+            },
+            "systemPrompt": {
+                "title": "システムプロンプト",
+                "description": "ランタイム変数と組み合わせたシステムプロンプトのテンプレートをカスタマイズします。",
+                "label": "プロンプトテンプレート",
+                "placeholder": "システムプロンプトを入力し、{{current_time}} などの変数を利用できます",
+                "helper": "変数プレースホルダーを残しておくと動的データを挿入でき、期待するJSONスキーマも明記してください。",
+                "preview": "現在のテンプレートプレビュー",
+                "example": "You are an intelligent scheduling assistant...\nCurrent server time: {{current_time}}\nUser timezone: {{user_timezone}}\nUpcoming events:\n{{upcoming_events}}\nRespond ONLY with JSON that matches the schema above."
+            },
+            "placeholders": {
+                "title": "利用可能な変数",
+                "description": "システムプロンプト内で使用できる変数です。実行時に自動で置き換えられます。",
+                "items": [
+                    {
+                        "token": "{{current_time}}",
+                        "description": "現在のサーバー時刻 (ISO 8601)"
+                    },
+                    {
+                        "token": "{{user_timezone}}",
+                        "description": "ユーザーのタイムゾーン識別子 (例: Asia/Shanghai)"
+                    },
+                    {
+                        "token": "{{upcoming_events}}",
+                        "description": "近日の予定一覧。1行ごとに id|title|start|end 形式"
+                    }
+                ]
+            },
+            "actions": {
+                "refresh": "設定を再読み込み"
+            },
+            "messages": {
+                "fetchFailed": "日程設定の取得に失敗しました",
+                "updateSuccess": "日程設定を更新しました",
+                "updateFailed": "更新に失敗しました。しばらくしてから再試行してください",
+                "modelRequired": "先に解析モデルを選択してください"
+            }
+        }
+    }
+}

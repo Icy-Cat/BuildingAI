@@ -51,4 +51,13 @@ export class SystemConsoleController {
     async restartApplication() {
         return this.systemService.restartApplication();
     }
+
+    @Post("sync-menu")
+    @Permissions({
+        code: "system:sync-menu",
+        name: "同步菜单",
+    })
+    async syncMenu() {
+        return this.systemService.syncMenu();
+    }
 }

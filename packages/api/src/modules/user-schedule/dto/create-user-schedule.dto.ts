@@ -48,7 +48,7 @@ export class CreateUserScheduleDto {
     category?: ScheduleCategory;
 
     @IsOptional()
-    @IsIn(["high", "medium", "low"])
+    @IsIn(["high", "medium", "low", "none"])
     priority?: SchedulePriority;
 
     @IsOptional()

@@ -1,4 +1,5 @@
 import { getProvider, TextGenerator } from "@buildingai/ai-sdk";
+import { MODEL_FEATURES } from "@buildingai/ai-sdk/interfaces/model-features";
 import { AI_DEFAULT_MODEL } from "@buildingai/constants";
 import { SecretService } from "@buildingai/core/modules/secret/services/secret.service";
 import { InjectRepository } from "@buildingai/db/@nestjs/typeorm";
@@ -12,6 +13,7 @@ import { Injectable, Logger } from "@nestjs/common";
 
 import { ExecuteScheduleDto, ParseScheduleDto } from "../dto/ai-schedule.dto";
 import { CreateUserScheduleDto } from "../dto/create-user-schedule.dto";
+import { ScheduleConfigDto } from "../dto/schedule-config.dto";
 import type {
     AiScheduleProposal,
     AiScheduleResponse,
@@ -19,6 +21,7 @@ import type {
     ScheduleIntent,
     ScheduleProposalPayload,
 } from "../interfaces/ai-schedule.interface";
+import { buildScheduleResponseSchema, type ScheduleSchemaDefinition } from "./schedule-schema.builder";
 import { UserScheduleService } from "./user-schedule.service";
 
 /**
@@ -39,32 +42,97 @@ export class AiScheduleService {
     ) {}
 
     /**
+     * 获取日程助手配置
+     */
+    async getConfig(): Promise<ScheduleConfigDto> {
+        const config = await this.dictService.get<ScheduleConfigDto>(
+            "schedule_config",
+            undefined,
+            "ai",
+        );
+        return {
+            modelId: config?.modelId ?? "",
+            temperature: config?.temperature ?? 0.2,
+            systemPrompt: config?.systemPrompt ?? "",
+            contextLimit: config?.contextLimit ?? 5,
+            schemaOutputEnabled: config?.schemaOutputEnabled ?? true,
+        };
+    }
+
+    /**
+     * 更新日程助手配置
+     */
+    async updateConfig(dto: ScheduleConfigDto): Promise<void> {
+        await this.dictService.set("schedule_config", dto, {
+            group: "ai",
+            description: "日程助手配置",
+        });
+    }
+
+    /**
      * 解析用户输入
      */
     async parse(userId: string, dto: ParseScheduleDto): Promise<AiScheduleResponse> {
-        const model = await this.resolveModel(dto.modelId);
+        this.logger.debug(`[Parse] Request Body: ${JSON.stringify(dto)}`);
+        const config = await this.getConfig();
+        const modelId = config.modelId || dto.modelId;
+        const model = await this.resolveModel(modelId);
+        this.logger.debug(`[Parse] Using Model: ${model.name} (${model.model})`);
         const generator = await this.createGenerator(model);
         const timezone = dto.timezone || "Asia/Shanghai";
         const now = dto.now ? new Date(dto.now) : new Date();
 
-        const upcoming = await this.userScheduleService.findUpcomingSchedules(userId, 5);
-        const systemPrompt = this.buildSystemPrompt(now, timezone, upcoming);
+        const upcoming = await this.userScheduleService.findUpcomingSchedules(userId, config.contextLimit || 5);
+        const schemaDefinition = this.getResponseSchema(timezone);
+        const systemPrompt = this.buildSystemPrompt(
+            now,
+            timezone,
+            upcoming,
+            schemaDefinition,
+            config.systemPrompt,
+        );
+        const shouldUseSchema = this.shouldUseSchema(model, config);
+        const requestPayload: Parameters<TextGenerator["chat"]["create"]>[0] = {
+            model: model.model,
+            temperature: config.temperature ?? 0.2,
+            messages: [
+                {
+                    role: "system",
+                    content: systemPrompt,
+                },
+                {
+                    role: "user",
+                    content: dto.message.trim(),
+                },
+            ],
+        };
+
+        if (shouldUseSchema) {
+            requestPayload.response_format = {
+                type: "json_schema",
+                json_schema: {
+                    name: schemaDefinition.name,
+                    schema: schemaDefinition.schema,
+                    strict: schemaDefinition.strict,
+                },
+            };
+            this.logger.log(
+                `[Parse] Schema enforcement enabled (provider=${model.provider?.provider}, features=${
+                    model.features?.join(",") || "none"
+                })`,
+            );
+        } else {
+            const toggle = config.schemaOutputEnabled ?? true;
+            const reason = toggle ? "missing-structured-output" : "toggle-disabled";
+            this.logger.log(
+                `[Parse] Schema enforcement skipped (${reason}) for provider=${model.provider?.provider}, features=${
+                    model.features?.join(",") || "none"
+                }`,
+            );
+        }
 
         try {
-            const completion = await generator.chat.create({
-                model: model.model,
-                temperature: 0.2,
-                messages: [
-                    {
-                        role: "system",
-                        content: systemPrompt,
-                    },
-                    {
-                        role: "user",
-                        content: dto.message.trim(),
-                    },
-                ],
-            });
+            const completion = await generator.chat.create(requestPayload);
 
             const content = completion.choices[0]?.message?.content ?? "";
             const normalized = this.parseAssistantContent(content);
@@ -76,6 +144,11 @@ export class AiScheduleService {
                 requiresClarification: true,
             };
         }
+    }
+
+    getResponseSchema(timezone?: string): ScheduleSchemaDefinition {
+        const resolvedTimezone = timezone || "Asia/Shanghai";
+        return buildScheduleResponseSchema(resolvedTimezone);
     }
 
     /**
@@ -261,7 +334,13 @@ export class AiScheduleService {
         return new TextGenerator(provider);
     }
 
-    private buildSystemPrompt(now: Date, timezone: string, events: UserSchedule[]): string {
+    private buildSystemPrompt(
+        now: Date,
+        timezone: string,
+        events: UserSchedule[],
+        schema: ScheduleSchemaDefinition,
+        customPrompt?: string,
+    ): string {
         const eventLines =
             events.length === 0
                 ? "暂无记录"
@@ -271,6 +350,18 @@ export class AiScheduleService {
                               `${item.id}|${item.title}|${item.startTime.toISOString()}|${item.endTime.toISOString()}`,
                       )
                       .join("\n");
+        const schemaInstructions = this.buildSchemaInstructions(schema);
+
+        if (customPrompt) {
+            return (
+                customPrompt
+                    .replace("{{current_time}}", now.toISOString())
+                    .replace("{{user_timezone}}", timezone)
+                    .replace("{{upcoming_events}}", eventLines) +
+                "\n\n" +
+                schemaInstructions
+            );
+        }
 
         return [
             "You are an intelligent scheduling assistant for BuildingAI.",
@@ -278,29 +369,19 @@ export class AiScheduleService {
             `User timezone: ${timezone}`,
             "Upcoming user events (id|title|start|end):",
             eventLines,
-            "Always respond **ONLY** with JSON matching this schema:",
-            `{
-  "reply": "Friendly acknowledgement and short summary for the user",
-  "intent": "create|update|delete|query",
-  "confidence": 0.0-1.0,
-  "follow_up_question": "question when missing_fields is not empty" | null,
-  "missing_fields": ["field name"],
-  "target_event_id": "id for update/delete" | null,
-  "proposal": {
-    "title": "...",
-    "description": "...",
-    "startTime": "ISO timestamp",
-    "endTime": "ISO timestamp",
-    "location": "...",
-    "attendees": "...",
-    "category": "work|personal|meeting|reminder",
-    "priority": "high|medium|low",
-    "isImportant": true|false,
-    "isUrgent": true|false,
-    "timezone": "${timezone}"
-  }
-}`,
-            "If the request is ambiguous set missing_fields with required data and provide follow_up_question.",
+            "Always respond with machine-parseable JSON that matches the schema below. No commentary or markdown code fences are allowed.",
+            schemaInstructions,
+            "Only set missing_fields (with ['title']) when the user did not supply a title. All other properties, including time and location, are optional—leave them blank if uncertain.",
+        ].join("\n");
+    }
+
+    private buildSchemaInstructions(schema: ScheduleSchemaDefinition): string {
+        return [
+            `Schema name: ${schema.name}`,
+            "Schema summary:",
+            schema.summary,
+            "JSON Schema:",
+            JSON.stringify(schema.schema, null, 2),
         ].join("\n");
     }
 
@@ -342,9 +423,7 @@ export class AiScheduleService {
         const rawMissing = Array.isArray(payload.missing_fields)
             ? (payload.missing_fields as string[])
             : [];
-        const filteredMissing = rawMissing.filter(
-            (field) => field !== "endTime" && field !== "location",
-        );
+        const filteredMissing = rawMissing.includes("title") ? ["title"] : [];
 
         const proposal: AiScheduleProposal | undefined = payload.intent
             ? {
@@ -374,6 +453,14 @@ export class AiScheduleService {
         };
     }
 
+    private shouldUseSchema(model: AiModel, config: ScheduleConfigDto): boolean {
+        const toggleEnabled = config.schemaOutputEnabled ?? true;
+        if (!toggleEnabled) {
+            return false;
+        }
+        return !!model.features?.includes(MODEL_FEATURES.STRUCTURED_OUTPUT);
+    }
+
     private guardCategory(input?: string): UserSchedule["category"] | undefined {
         if (!input) return undefined;
         if (["work", "personal", "meeting", "reminder"].includes(input)) {
@@ -384,7 +471,7 @@ export class AiScheduleService {
 
     private guardPriority(input?: string): UserSchedule["priority"] | undefined {
         if (!input) return undefined;
-        if (["high", "medium", "low"].includes(input)) {
+        if (["high", "medium", "low", "none"].includes(input)) {
             return input as UserSchedule["priority"];
         }
         return undefined;

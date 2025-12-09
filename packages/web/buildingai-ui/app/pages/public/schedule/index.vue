@@ -129,17 +129,15 @@ const mockScheduleData: ScheduleItem[] = [
 const DEFAULT_EVENT_DURATION = 60 * 60 * 1000;
 const DRAFT_ID_PREFIX = "__draft__";
 type ApiCategory = Exclude<ScheduleItem["category"], "uncategorized">;
-type ApiPriority = Exclude<ScheduleItem["priority"], "none">;
+type ApiPriority = ScheduleItem["priority"];
 
 const normalizeCategoryForRequest = (value?: ScheduleItem["category"]): ApiCategory | undefined => {
     if (!value || value === "uncategorized") return undefined;
     return value;
 };
 
-const normalizePriorityForRequest = (value?: ScheduleItem["priority"]): ApiPriority | undefined => {
-    if (!value || value === "none") return undefined;
-    return value;
-};
+const normalizePriorityForRequest = (value?: ScheduleItem["priority"]): ApiPriority | undefined =>
+    value || undefined;
 
 const combineLocalDateTime = (dateStr: string | undefined, timeStr: string | undefined) => {
     const normalizedDate = dateStr || formatDateLocal(new Date());

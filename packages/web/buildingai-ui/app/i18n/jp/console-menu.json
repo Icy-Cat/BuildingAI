@@ -60,7 +60,8 @@
     "aiConversation": {
         "title": "会話管理",
         "aiChat": "会話記録",
-        "chatConfig": "会話設定"
+        "chatConfig": "会話設定",
+        "scheduleConfig": "スケジュール設定"
     },
     "userManagement": {
         "title": "ユーザー管理",

@@ -3,7 +3,7 @@ import { Column, Index, JoinColumn, ManyToOne, type Relation } from "../typeorm"
 import { SoftDeleteBaseEntity } from "./base";
 import { User } from "./user.entity";
 
-export type SchedulePriority = "high" | "medium" | "low";
+export type SchedulePriority = "high" | "medium" | "low" | "none";
 export type ScheduleCategory = "work" | "personal" | "meeting" | "reminder";
 
 /**
@@ -89,8 +89,8 @@ export class UserSchedule extends SoftDeleteBaseEntity {
     @Column({
         type: "varchar",
         length: 16,
-        default: "medium",
-        comment: "优先级：high/medium/low",
+        default: "none",
+        comment: "优先级：high/medium/low/none",
     })
     priority: SchedulePriority;
 
