@@ -40,7 +40,7 @@ export class CozeService {
                 workspace_id: this.spaceId,
                 page_num: page,
                 page_size: pageSize,
-                publish_status: "all",
+                // publish_status: "all",
             });
             return response;
         } catch (error) {

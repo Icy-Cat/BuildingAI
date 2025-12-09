@@ -218,6 +218,7 @@
         "deleteBatchSuccess": "批量删除成功",
         "deleteBatchFailed": "批量删除失败",
         "updateSuccess": "更新成功",
+        "updateFailed": "更新失败",
         "createSuccess": "创建成功",
         "uploadSuccess": "上传成功",
         "uploadFailed": "上传失败",

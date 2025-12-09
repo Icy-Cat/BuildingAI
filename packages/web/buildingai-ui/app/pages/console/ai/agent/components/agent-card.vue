@@ -3,6 +3,8 @@ import { type Agent } from "@buildingai/service/consoleapi/ai-agent";
 
 const props = defineProps<{
     agent: Agent;
+    selected?: boolean;
+    selectionMode?: boolean;
 }>();
 
 const emits = defineEmits<{
@@ -10,12 +12,17 @@ const emits = defineEmits<{
     (e: "edit", agent: Agent): void;
     (e: "exportDsl", agent: Agent): void;
     (e: "updateTags", agent: Agent, tags: string[]): void;
+    (e: "toggleSelect", agent: Agent): void;
 }>();
 
 const router = useRouter();
 
 const tags = shallowRef<string[]>([]);
 const handleViewDetail = () => {
+    if (props.selectionMode) {
+        emits("toggleSelect", props.agent);
+        return;
+    }
     router.push(useRoutePath("ai-agent:detail", { id: props.agent.id }));
 };
 
@@ -26,10 +33,19 @@ onMounted(() => {
 
 <template>
     <div
-        class="group border-default relative cursor-pointer rounded-lg border p-4 transition-all duration-200 hover:shadow-lg"
+        class="group relative cursor-pointer rounded-lg border p-4 transition-all duration-200 hover:shadow-lg"
+        :class="[selected ? 'border-primary ring-primary ring-1 bg-primary/5' : 'border-default']"
         @click="handleViewDetail"
     >
-        <div v-if="agent.createMode === 'coze'" class="absolute top-3 right-3 z-10">
+        <div v-if="selectionMode" class="absolute top-3 right-3 z-20" @click.stop>
+            <UCheckbox :model-value="selected" @update:model-value="emits('toggleSelect', agent)" />
+        </div>
+
+        <div
+            v-if="agent.createMode === 'coze'"
+            class="absolute top-3 z-10"
+            :class="[selectionMode ? 'right-10' : 'right-3']"
+        >
             <UBadge color="info" variant="soft" size="sm" class="flex items-center gap-1">
                 <UIcon name="i-lucide-bot" class="size-3" />
                 Coze
@@ -54,6 +70,7 @@ onMounted(() => {
         </div>
 
         <div
+            v-if="!selectionMode"
             class="absolute right-3 bottom-3 z-10 flex gap-1 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
             @click.stop
         >
@@ -117,7 +134,29 @@ onMounted(() => {
         </div>
 
         <div class="mb-5" @click.stop>
-            <TagCreate v-model="tags" type="app" @close="emits('updateTags', agent, tags)">
+            <div v-if="selectionMode" class="hover:bg-muted rounded-lg py-1">
+                <UButton v-if="!agent.tags?.length" color="neutral" variant="outline" size="xs">
+                    <UIcon name="i-lucide-tag" class="size-2" />
+                    <span>{{ $t("common.tag.addTag") }}</span>
+                </UButton>
+                <div v-else class="flex flex-wrap gap-1">
+                    <UBadge
+                        v-for="tag in agent.tags"
+                        :key="tag.id"
+                        color="neutral"
+                        variant="outline"
+                    >
+                        <UIcon name="i-lucide-tag" class="size-2" />
+                        <span>{{ tag.name }}</span>
+                    </UBadge>
+                </div>
+            </div>
+            <TagCreate
+                v-else
+                v-model="tags"
+                type="app"
+                @close="emits('updateTags', agent, tags)"
+            >
                 <template #trigger>
                     <div class="hover:bg-muted rounded-lg py-1" @click.stop>
                         <UButton

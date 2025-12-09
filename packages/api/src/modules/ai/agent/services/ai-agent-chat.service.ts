@@ -529,7 +529,7 @@ export class AiAgentChatService extends BaseService<AgentChatRecord> {
         }
 
         const userId = user.id;
-        const conversationId = conversationRecord?.id;
+        // const conversationId = conversationRecord?.id;
         const cozeConversationId = conversationRecord?.metadata?.cozeConversationId;
 
         // Get last user message
@@ -555,8 +555,8 @@ export class AiAgentChatService extends BaseService<AgentChatRecord> {
             const suggestions: string[] = [];
 
             for await (const part of stream) {
-                this.logger.debug(`Coze stream part: ${JSON.stringify(part)}`);
-                
+                // this.logger.debug(`Coze stream part: ${JSON.stringify(part)}`);
+
                 // Capture conversation_id from events
                 if (
                     (part.event === "conversation.chat.created" ||
@@ -597,7 +597,9 @@ export class AiAgentChatService extends BaseService<AgentChatRecord> {
 
                         if (content) {
                             fullResponse += content;
-                            res!.write(`data: ${JSON.stringify({ type: "chunk", data: content })}\n\n`);
+                            res!.write(
+                                `data: ${JSON.stringify({ type: "chunk", data: content })}\n\n`,
+                            );
                         }
                     }
                 } else if (part.event === "conversation.message.completed" && part.data) {
@@ -608,7 +610,9 @@ export class AiAgentChatService extends BaseService<AgentChatRecord> {
                         if (!fullResponse && message.content) {
                             const content = message.content;
                             fullResponse += content;
-                            res!.write(`data: ${JSON.stringify({ type: "chunk", data: content })}\n\n`);
+                            res!.write(
+                                `data: ${JSON.stringify({ type: "chunk", data: content })}\n\n`,
+                            );
                         }
                     } else if (message.type === "function_call") {
                         // Log function call
@@ -621,10 +625,14 @@ export class AiAgentChatService extends BaseService<AgentChatRecord> {
                                 : `> 调用工具回复中...\n\n`;
 
                             // Send to client but do not append to fullResponse (so it's not saved in DB)
-                            res!.write(`data: ${JSON.stringify({ type: "chunk", data: displayText })}\n\n`);
-                        } catch (e) {
+                            res!.write(
+                                `data: ${JSON.stringify({ type: "chunk", data: displayText })}\n\n`,
+                            );
+                        } catch (_e) {
                             const displayText = `> 调用工具回复中...\n\n`;
-                            res!.write(`data: ${JSON.stringify({ type: "chunk", data: displayText })}\n\n`);
+                            res!.write(
+                                `data: ${JSON.stringify({ type: "chunk", data: displayText })}\n\n`,
+                            );
                         }
                     } else if (message.type === "follow_up") {
                         // Handle follow-up questions (suggestions)
@@ -640,10 +648,14 @@ export class AiAgentChatService extends BaseService<AgentChatRecord> {
                     }
                 } else if (part.event === "conversation.chat.failed") {
                     this.logger.error(`Coze chat failed: ${JSON.stringify(part.data)}`);
-                    res!.write(`data: ${JSON.stringify({ type: "error", data: { message: "Coze chat failed" } })}\n\n`);
+                    res!.write(
+                        `data: ${JSON.stringify({ type: "error", data: { message: "Coze chat failed" } })}\n\n`,
+                    );
                 }
             }
-            this.logger.log(`Coze chat stream completed. Full response length: ${fullResponse.length}`);
+            this.logger.log(
+                `Coze chat stream completed. Full response length: ${fullResponse.length}`,
+            );
 
             // Save bot message
             if (conversationRecord) {

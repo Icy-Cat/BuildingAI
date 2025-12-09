@@ -6,6 +6,8 @@ import {
     apiExportAgentDsl,
     apiGetAgentList,
     apiRemoveAgentTags,
+    apiSyncCozeAgent,
+    apiUpdateAgentConfig,
 } from "@buildingai/service/consoleapi/ai-agent";
 
 const AgentCard = defineAsyncComponent(() => import("./components/agent-card.vue"));
@@ -30,6 +32,139 @@ const searchForm = reactive<QueryAgentParams>({
 const loading = shallowRef(false);
 const hasMore = shallowRef(true);
 const agents = shallowRef<Agent[]>([]);
+
+const selectedAgentIds = ref<Set<string>>(new Set());
+const isBatchMode = ref(false);
+
+const isAllSelected = computed(() => {
+    return (
+        agents.value.length > 0 &&
+        agents.value.every((agent) => selectedAgentIds.value.has(agent.id))
+    );
+});
+
+const toggleSelectAll = (checked: boolean | "indeterminate") => {
+    if (checked === true) {
+        const newSet = new Set(selectedAgentIds.value);
+        agents.value.forEach((agent) => newSet.add(agent.id));
+        selectedAgentIds.value = newSet;
+    } else {
+        selectedAgentIds.value = new Set();
+    }
+};
+
+const toggleSelection = (agent: Agent) => {
+    const newSet = new Set(selectedAgentIds.value);
+    if (newSet.has(agent.id)) {
+        newSet.delete(agent.id);
+    } else {
+        newSet.add(agent.id);
+    }
+    selectedAgentIds.value = newSet;
+};
+
+const clearSelection = () => {
+    selectedAgentIds.value = new Set();
+    isBatchMode.value = false;
+};
+
+const toggleBatchMode = () => {
+    isBatchMode.value = !isBatchMode.value;
+    if (!isBatchMode.value) {
+        selectedAgentIds.value = new Set();
+    }
+};
+
+const handleBatchDelete = async () => {
+    if (selectedAgentIds.value.size === 0) return;
+
+    try {
+        await useModal({
+            title: t("console-common.batchDelete"),
+            description: t("ai-agent.backend.desc.delete"),
+            color: "error",
+        });
+
+        // Snapshot & Optimistic Update
+        const idsToDelete = Array.from(selectedAgentIds.value);
+        const originalAgents = [...agents.value];
+        agents.value = agents.value.filter((a) => !selectedAgentIds.value.has(a.id));
+
+        clearSelection();
+        toast.success(t("common.message.deleteSuccess"));
+
+        try {
+            await Promise.all(idsToDelete.map((id) => apiDeleteAgent(id)));
+            // If list becomes too short, maybe refresh?
+            if (agents.value.length < 5 && hasMore.value) {
+                await getLists();
+            }
+        } catch (error) {
+            console.error("Batch delete failed:", error);
+            // Rollback
+            agents.value = originalAgents;
+            toast.error(t("common.message.deleteFailed"));
+        }
+    } catch (_error) {
+        // Modal cancelled
+    }
+};
+
+const handleBatchSetPublic = async (isPublic: boolean) => {
+    if (selectedAgentIds.value.size === 0) return;
+
+    // Snapshot & Optimistic Update
+    const idsToUpdate = Array.from(selectedAgentIds.value);
+    const originalStates = idsToUpdate.map((id) => {
+        const agent = agents.value.find((a) => a.id === id);
+        return { id, isPublic: agent?.isPublic };
+    });
+
+    idsToUpdate.forEach((id) => {
+        const agent = agents.value.find((a) => a.id === id);
+        if (agent) agent.isPublic = isPublic;
+    });
+
+    clearSelection();
+    toast.success(t("common.message.updateSuccess"));
+
+    try {
+        await Promise.all(idsToUpdate.map((id) => apiUpdateAgentConfig(id, { isPublic })));
+    } catch (error) {
+        console.error("Batch set public failed:", error);
+        // Rollback
+        originalStates.forEach(({ id, isPublic: oldState }) => {
+            const agent = agents.value.find((a) => a.id === id);
+            if (agent) agent.isPublic = oldState;
+        });
+        toast.error(t("common.message.updateFailed"));
+    }
+};
+
+const handleBatchUpdateCoze = async () => {
+    if (selectedAgentIds.value.size === 0) return;
+
+    const idsToUpdate = Array.from(selectedAgentIds.value);
+    clearSelection();
+    toast.success(t("common.message.updateSuccess")); // Optimistic success message
+
+    // Background processing
+    try {
+        await Promise.all(
+            idsToUpdate.map(async (id) => {
+                try {
+                    await apiSyncCozeAgent(id);
+                } catch (e) {
+                    console.warn(`Failed to sync agent ${id}`, e);
+                }
+            }),
+        );
+        // Refresh silently to update data
+        await getLists();
+    } catch (error) {
+        console.error("Batch sync coze failed:", error);
+    }
+};
 
 const getLists = async () => {
     if (loading.value) return;
@@ -239,6 +374,14 @@ onMounted(() => getLists());
 
             <div>
                 <UButton
+                    v-if="!isBatchMode"
+                    color="neutral"
+                    variant="ghost"
+                    icon="i-lucide-list-checks"
+                    :label="$t('console-common.batchOperation')"
+                    @click="toggleBatchMode"
+                />
+                <UButton
                     color="primary"
                     variant="ghost"
                     icon="i-lucide-package"
@@ -246,6 +389,67 @@ onMounted(() => getLists());
                     @click.stop="handleAgentDecorate"
                 />
             </div>
+        </div>
+
+        <div
+            v-if="isBatchMode"
+            class="bg-muted/50 mb-2 flex w-full items-center gap-2 rounded-lg p-2"
+        >
+            <UCheckbox
+                :model-value="isAllSelected"
+                label="全选"
+                @update:model-value="toggleSelectAll"
+            />
+            <div class="h-4 w-px bg-gray-300 dark:bg-gray-700"></div>
+            <span class="text-sm font-medium"
+                >{{ selectedAgentIds.size }} {{ $t("console-common.selected") }}</span
+            >
+            <div class="h-4 w-px bg-gray-300 dark:bg-gray-700"></div>
+            <UButton
+                color="error"
+                variant="ghost"
+                icon="i-lucide-trash"
+                size="xs"
+                :label="$t('console-common.batchDelete')"
+                :disabled="selectedAgentIds.size === 0"
+                @click="handleBatchDelete"
+            />
+            <UButton
+                color="primary"
+                variant="ghost"
+                icon="i-lucide-globe"
+                size="xs"
+                :label="$t('ai-agent.backend.configuration.public')"
+                :disabled="selectedAgentIds.size === 0"
+                @click="handleBatchSetPublic(true)"
+            />
+            <UButton
+                color="neutral"
+                variant="ghost"
+                icon="i-lucide-globe-lock"
+                size="xs"
+                :label="$t('ai-agent.backend.configuration.private')"
+                :disabled="selectedAgentIds.size === 0"
+                @click="handleBatchSetPublic(false)"
+            />
+            <UButton
+                color="info"
+                variant="ghost"
+                icon="i-lucide-refresh-cw"
+                size="xs"
+                label="批量更新Coze"
+                :disabled="selectedAgentIds.size === 0"
+                @click="handleBatchUpdateCoze"
+            />
+            <div class="flex-1"></div>
+            <UButton
+                color="neutral"
+                variant="ghost"
+                icon="i-lucide-x"
+                size="xs"
+                :label="$t('console-common.cancel')"
+                @click="clearSelection"
+            />
         </div>
 
         <BdScrollArea class="h-[calc(100vh-9rem)] min-h-0 w-full">
@@ -320,10 +524,13 @@ onMounted(() => getLists());
                         v-for="agent in agents"
                         :key="agent.id"
                         :agent="agent"
+                        :selected="selectedAgentIds.has(agent.id)"
+                        :selection-mode="isBatchMode"
                         @delete="handleDelete"
                         @edit="handleEdit"
                         @export-dsl="handleExportDsl"
                         @update-tags="handleUpdateTags"
+                        @toggle-select="toggleSelection"
                     />
                 </div>
             </BdInfiniteScroll>
