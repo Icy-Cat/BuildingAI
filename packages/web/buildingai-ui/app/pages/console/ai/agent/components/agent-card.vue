@@ -29,6 +29,13 @@ onMounted(() => {
         class="group border-default relative cursor-pointer rounded-lg border p-4 transition-all duration-200 hover:shadow-lg"
         @click="handleViewDetail"
     >
+        <div v-if="agent.createMode === 'coze'" class="absolute top-3 right-3 z-10">
+            <UBadge color="info" variant="soft" size="sm" class="flex items-center gap-1">
+                <UIcon name="i-lucide-bot" class="size-3" />
+                Coze
+            </UBadge>
+        </div>
+
         <div
             class="absolute right-3 bottom-3.5 z-10 flex gap-1 opacity-100 transition-opacity duration-200 group-hover:opacity-0"
             @click.stop

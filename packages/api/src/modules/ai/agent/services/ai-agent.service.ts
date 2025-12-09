@@ -10,6 +10,7 @@ import { Tag } from "@buildingai/db/entities/tag.entity";
 import { type UserPlayground } from "@buildingai/db/interfaces/context.interface";
 import { Repository } from "@buildingai/db/typeorm";
 import { HttpErrorFactory } from "@buildingai/errors";
+import { BotInfo, SuggestReplyMode } from "@coze/api";
 import { Injectable } from "@nestjs/common";
 import { randomBytes } from "crypto";
 
@@ -20,6 +21,7 @@ import {
     QueryAgentStatisticsDto,
     UpdateAgentConfigDto,
 } from "../dto/agent";
+import { CozeService } from "./coze.service";
 
 @Injectable()
 export class AiAgentService extends BaseService<Agent> {
@@ -40,6 +42,7 @@ export class AiAgentService extends BaseService<Agent> {
         private readonly aiModelRepository: Repository<AiModel>,
         @InjectRepository(AiProvider)
         private readonly aiProviderRepository: Repository<AiProvider>,
+        private readonly cozeService: CozeService,
     ) {
         super(agentRepository);
     }
@@ -156,6 +159,83 @@ export class AiAgentService extends BaseService<Agent> {
             this.logger.log(`[+] 智能体配置更新成功: ${id}`);
             return this.getAgentDetail(id);
         }, "智能体配置更新失败");
+    }
+
+    /**
+     * 同步Coze智能体配置
+     * @param id 智能体ID
+     */
+    async syncCozeAgent(id: string): Promise<Agent> {
+        const agent = await this.getAgentDetail(id);
+        const cozeBotId = agent.thirdPartyIntegration?.coze?.botId;
+
+        if (!cozeBotId) {
+            throw HttpErrorFactory.badRequest("该智能体未关联Coze Bot");
+        }
+
+        return this.withErrorHandling(async () => {
+            const botData = await this.cozeService.getBot(cozeBotId);
+            const botInfo = botData as BotInfo;
+
+            // Map Coze data to Agent entity
+            const updateData: Partial<Agent> = {};
+
+            if (botInfo.name) updateData.name = botInfo.name;
+            if (botInfo.description) updateData.description = botInfo.description;
+            if (botInfo.icon_url) updateData.avatar = botInfo.icon_url;
+
+            // Onboarding Info
+            if (botInfo.onboarding_info) {
+                if (botInfo.onboarding_info.prologue) {
+                    updateData.openingStatement = botInfo.onboarding_info.prologue;
+                }
+                if (botInfo.onboarding_info.suggested_questions) {
+                    updateData.openingQuestions = botInfo.onboarding_info.suggested_questions;
+                }
+            }
+
+            // Auto Questions
+            // Check for new field suggest_reply_info.reply_mode
+            if (botInfo.suggest_reply_info?.reply_mode) {
+                updateData.autoQuestions = {
+                    enabled: botInfo.suggest_reply_info.reply_mode === SuggestReplyMode.ENABLE,
+                    customRuleEnabled: false,
+                };
+            }
+            // Fallback to model_info (older API versions)
+            else if ((botInfo as any).model_info_config) {
+                // Note: model_info_config in SDK types doesn't seem to have suggested_questions_after_answer
+                // But we keep this logic if it was based on older API response structure not reflected in types
+                // Or we can remove it if we are sure suggest_reply_info is the way to go.
+                // For now, let's rely on suggest_reply_info as per user request and SDK types.
+            }
+
+            // Form Fields (User Input Form)
+            // Note: user_input_form is NOT in BotInfo type definition from @coze/api v1.3.9
+            // We have to cast to any to access it if it exists in the API response but not in types
+            // Or check if it's mapped to 'variables' in the SDK.
+            // Looking at BotInfo, there is 'variables: BotVariable[]'.
+            // Let's check if we can map variables.
+            // However, the user request specifically mentioned user_input_form.
+            // If the SDK types are incomplete, we might still need 'any' for specific fields.
+            // But let's try to use what's available or cast only the missing part.
+
+            const rawBotInfo = botData as any;
+            if (rawBotInfo.user_input_form) {
+                updateData.formFields = rawBotInfo.user_input_form.map((field: any) => ({
+                    name: field.key,
+                    label: field.label,
+                    type: field.type === "text_input" ? "text" : "text", // Default to text for unknown types
+                    required: field.required,
+                    options: field.options,
+                }));
+            }
+
+            await this.updateById(id, updateData);
+            this.logger.log(`[+] Coze智能体同步成功: ${id} (BotID: ${cozeBotId})`);
+
+            return this.getAgentDetail(id);
+        }, "同步Coze智能体失败");
     }
 
     // 获取智能体列表，支持关键字过滤、公开状态筛选和分页

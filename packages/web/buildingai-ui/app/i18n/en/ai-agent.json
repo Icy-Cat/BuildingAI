@@ -37,6 +37,13 @@
             "statistics": "Dashboard"
         },
         "configuration": {
+            "coze": {
+                "title": "Coze Agent",
+                "sync": "Sync",
+                "editInCoze": "Edit in Coze",
+                "readOnlyTip": "This agent is managed in Coze. Configuration here is read-only. Use Sync to update local metadata.",
+                "saveWarning": "Coze agent configuration is managed by Coze, please update via sync function."
+            },
             "func": "Function Config",
             "user": "UI Config",
             "saveConfig": "Save Config",

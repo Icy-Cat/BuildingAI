@@ -782,6 +782,16 @@ export function apiUpdateAgentConfig(id: string, data: UpdateAgentConfigParams):
 }
 
 /**
+ * Sync Coze agent configuration
+ * @description Sync agent configuration from Coze
+ * @param id Agent ID
+ * @returns Promise with updated agent information
+ */
+export function apiSyncCozeAgent(id: string): Promise<Agent> {
+    return useConsolePost(`/ai-agent/${id}/sync-coze`);
+}
+
+/**
  * Delete agent
  * @description Delete specified agent by agent ID
  * @param id Agent ID

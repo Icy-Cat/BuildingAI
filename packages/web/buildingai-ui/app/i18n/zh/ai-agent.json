@@ -37,6 +37,13 @@
             "statistics": "数据看板"
         },
         "configuration": {
+            "coze": {
+                "title": "Coze 智能体",
+                "sync": "同步",
+                "editInCoze": "在 Coze 中编辑",
+                "readOnlyTip": "该智能体由 Coze 管理。此处配置为只读。请使用同步功能更新本地元数据。",
+                "saveWarning": "Coze 智能体配置由 Coze 管理，请通过同步功能更新配置"
+            },
             "func": "功能配置",
             "user": "界面配置",
             "saveConfig": "保存配置",

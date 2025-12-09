@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { Agent, UpdateAgentConfigParams } from "@buildingai/service/consoleapi/ai-agent";
-import { apiUpdateAgentConfig } from "@buildingai/service/consoleapi/ai-agent";
+import { apiSyncCozeAgent, apiUpdateAgentConfig } from "@buildingai/service/consoleapi/ai-agent";
 import { useDebounceFn } from "@vueuse/core";
 import type { Component } from "vue";
 
@@ -78,6 +78,24 @@ const state = reactive<UpdateAgentConfigParams>({
     tagIds: [],
 });
 
+const isCozeAgent = computed(() => state.createMode === "coze");
+const cozeBotId = computed(() => state.thirdPartyIntegration?.coze?.botId);
+
+const { lockFn: handleSyncCoze, isLock: isSyncing } = useLockFn(async () => {
+    const updatedAgent = await apiSyncCozeAgent(agentId as string);
+    // Update state with new data
+    // Filter out 'id' and other non-updateable fields before assigning
+    const {
+        id: _id,
+        createdAt: _createdAt,
+        updatedAt: _updatedAt,
+        ...rest
+    } = updatedAgent as Agent;
+    Object.assign(state, rest);
+    useMessage().success(t("common.message.updateSuccess"));
+    refreshNuxtData(`agent-detail-${agentId as string}`);
+});
+
 function handleVariableModalOpen() {
     if (!state.formFields || state.formFields.length === 0) {
         useMessage().error(t("ai-agent.backend.configuration.variableInputDesc"));
@@ -87,6 +105,10 @@ function handleVariableModalOpen() {
 }
 
 const { lockFn: handleUpdate, isLock } = useLockFn(async (flag = true) => {
+    if (isCozeAgent.value) {
+        useMessage().warning(t("ai-agent.backend.configuration.coze.saveWarning"));
+        return;
+    }
     await apiUpdateAgentConfig(agentId as string, state);
     if (flag) {
         useMessage().success(t("common.message.updateSuccess"));
@@ -99,7 +121,7 @@ const handleAutoSave = useDebounceFn(() => handleUpdate(false), 1000);
 watch(
     () => state,
     () => {
-        if (!isInitialized.value || !enableAutoSave.value) {
+        if (!isInitialized.value || !enableAutoSave.value || isCozeAgent.value) {
             return;
         }
         handleAutoSave();
@@ -137,6 +159,46 @@ onMounted(() => {
         </div>
         <div class="flex h-full min-h-0 flex-1 gap-4 pt-4 pr-4">
             <div class="flex h-full min-h-0 w-1/2 flex-none flex-col">
+                <!-- Coze Banner -->
+                <div
+                    v-if="isCozeAgent"
+                    class="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-4 text-blue-800 dark:border-blue-800 dark:bg-blue-900/30 dark:text-blue-200"
+                >
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <UIcon name="i-lucide-bot" class="h-5 w-5" />
+                            <span class="font-medium"
+                                >{{ $t("ai-agent.backend.configuration.coze.title") }} (Bot ID:
+                                {{ cozeBotId }})</span
+                            >
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <UButton
+                                size="xs"
+                                color="primary"
+                                variant="soft"
+                                :loading="isSyncing"
+                                @click="handleSyncCoze"
+                            >
+                                {{ $t("ai-agent.backend.configuration.coze.sync") }}
+                            </UButton>
+                            <UButton
+                                size="xs"
+                                color="neutral"
+                                variant="ghost"
+                                to="https://www.coze.cn/"
+                                target="_blank"
+                                icon="i-lucide-external-link"
+                            >
+                                {{ $t("ai-agent.backend.configuration.coze.editInCoze") }}
+                            </UButton>
+                        </div>
+                    </div>
+                    <p class="mt-1 text-sm opacity-80">
+                        {{ $t("ai-agent.backend.configuration.coze.readOnlyTip") }}
+                    </p>
+                </div>
+
                 <div class="mb-4 flex">
                     <UTabs v-model="active" :items="components" class="block w-auto" />
                 </div>
@@ -147,6 +209,7 @@ onMounted(() => {
                 <div class="mb-4 flex items-center justify-end gap-3 p-0.5">
                     <UCheckbox
                         v-model="enableAutoSave"
+                        :disabled="isCozeAgent"
                         :label="t('ai-agent.backend.configuration.enableAutoSave')"
                         class="flex-none"
                     />

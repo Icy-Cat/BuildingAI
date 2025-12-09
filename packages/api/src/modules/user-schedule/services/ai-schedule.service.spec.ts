@@ -2,6 +2,8 @@ import { SecretService } from "@buildingai/core/modules/secret/services/secret.s
 import { AiModel } from "@buildingai/db/entities/ai-model.entity";
 import { Repository } from "@buildingai/db/typeorm";
 
+import { DictService } from "@buildingai/dict";
+
 import { ExecuteScheduleDto, ParseScheduleDto } from "../dto/ai-schedule.dto";
 import { AiScheduleService } from "./ai-schedule.service";
 import { UserScheduleService } from "./user-schedule.service";
@@ -20,11 +22,12 @@ describe("AiScheduleService", () => {
     let service: AiScheduleService;
     let secretService: jest.Mocked<SecretService>;
     let scheduleService: jest.Mocked<UserScheduleService>;
+    let dictService: jest.Mocked<DictService>;
     let aiModelRepository: jest.Mocked<Repository<AiModel>>;
 
     beforeEach(() => {
         secretService = {
-            getConfigKeyValuePairs: jest.fn().mockResolvedValue({ apiKey: "key", baseUrl: "" }),
+            getSecret: jest.fn().mockResolvedValue({ apiKey: "test-key" }),
         } as any;
 
         scheduleService = {
@@ -36,6 +39,10 @@ describe("AiScheduleService", () => {
             findSchedulesInRange: jest.fn().mockResolvedValue([]),
         } as any;
 
+        dictService = {
+            getDictValue: jest.fn().mockResolvedValue("some-value"),
+        } as any;
+
         aiModelRepository = {
             findOne: jest.fn().mockResolvedValue({
                 id: "model",
@@ -44,7 +51,7 @@ describe("AiScheduleService", () => {
             }),
         } as any;
 
-        service = new AiScheduleService(secretService, scheduleService, aiModelRepository);
+        service = new AiScheduleService(secretService, scheduleService, dictService, aiModelRepository);
     });
 
     it("parses AI response into structured proposal", async () => {

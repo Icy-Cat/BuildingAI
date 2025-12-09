@@ -23,6 +23,7 @@ import { AiAgentService } from "../services/ai-agent.service";
 import { AiAgentAnnotationService } from "../services/ai-agent-annotation.service";
 import { AiAgentChatsMessageService } from "../services/ai-agent-chat-message.service";
 import { AiAgentChatRecordService } from "../services/ai-agent-chat-record.service";
+import { CozeService } from "../services/coze.service";
 import { AnnotationHandler } from "./annotation.handler";
 import { BillingHandler } from "./billing.handler";
 import { ChatContextBuilder } from "./chat-context.builder";
@@ -110,6 +111,7 @@ import { ToolCallHandler } from "./tool-call.handler";
         AiMcpServerService,
         AiMcpToolService,
         DictService,
+        CozeService,
     ],
     exports: [
         MessageHandler,

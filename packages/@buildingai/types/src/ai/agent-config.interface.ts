@@ -159,11 +159,11 @@ export interface MessageMetadata {
  */
 export interface ThirdPartyIntegrationConfig {
     /** 应用/机器人ID */
-    appId: string;
+    appId?: string;
     /** API 密钥 */
-    apiKey: string;
+    apiKey?: string;
     /** API 端点地址 */
-    baseURL: string;
+    baseURL?: string;
     /** 扩展配置，支持各平台特有配置 */
     extendedConfig?: Record<string, any>;
     /** 变量映射配置 */

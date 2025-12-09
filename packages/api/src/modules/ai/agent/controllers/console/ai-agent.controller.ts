@@ -80,6 +80,18 @@ export class AiAgentConsoleController {
     }
 
     /**
+     * 同步Coze智能体配置
+     */
+    @Post(":id/sync-coze")
+    @Permissions({
+        code: "update",
+        name: "同步Coze智能体配置",
+    })
+    async syncCozeBot(@Param("id") id: string) {
+        return this.AiAgentService.syncCozeAgent(id);
+    }
+
+    /**
      * 创建智能体
      *
      * @param dto 创建智能体DTO

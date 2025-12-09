@@ -32,6 +32,8 @@ const isThirdParty = computed(() => {
     ).length;
 });
 
+const isCoze = computed(() => state.value.createMode === "coze");
+
 const ThirdPartyIntegration = computed(() => {
     console.log(usePluginSlots("agent:config:third-party").value, state.value.createMode);
     return usePluginSlots("agent:config:third-party").value.find(
@@ -44,36 +46,32 @@ const ThirdPartyIntegration = computed(() => {
     <div class="space-y-4 overflow-y-auto">
         <template v-if="!isThirdParty">
             <!-- 角色设定提示词区域 -->
-            <Prompt v-model="state.rolePrompt as string" />
+            <Prompt v-if="!isCoze" v-model="state.rolePrompt as string" />
 
             <!-- 角色设定变量修改区域 -->
-            <Variable v-model="state.formFields as FormFieldConfig[]" />
+            <Variable v-if="!isCoze" v-model="state.formFields as FormFieldConfig[]" />
 
-            <!-- 角色设定知识库修改区域 -->
-            <Datasets v-model="state.datasetIds as string[]" />
+            <!-- 知识库 -->
+            <Datasets v-if="!isCoze" v-model="state.datasetIds as string[]" />
 
-            <!-- 对话上下文 -->
+            <!-- MCP工具 -->
+            <McpTool v-if="!isCoze" v-model="state.mcpServerIds as string[]" />
+
+            <!-- 上下文 -->
             <Context v-model="state.showContext as boolean" />
 
             <!-- 引用来源 -->
             <Reference v-model="state.showReference as boolean" />
 
-            <!-- 反馈按钮 -->
+            <!-- 用户反馈 -->
             <Feedback v-model="state.enableFeedback as boolean" />
+
+            <!-- 标签 -->
+            <Tags v-model="state.tagIds as string[]" />
+
+            <!-- 公开设置 -->
+            <Public v-model="state.isPublic as boolean" />
         </template>
-
-        <template v-else>
-            <!-- 第三方平台集成 -->
-            <component :is="ThirdPartyIntegration" v-model="state.thirdPartyIntegration" />
-        </template>
-
-        <!-- 公开设置 -->
-        <Public v-model="state.isPublic as boolean" />
-
-        <!-- MCP工具 -->
-        <McpTool v-model="state.mcpServerIds as string[]" />
-
-        <!-- 标签 -->
-        <Tags v-model="state.tagIds as string[]" />
+        <component :is="ThirdPartyIntegration" v-else v-model="state" />
     </div>
 </template>
