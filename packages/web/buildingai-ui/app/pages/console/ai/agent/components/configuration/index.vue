@@ -89,6 +89,11 @@ const { lockFn: handleSyncCoze, isLock: isSyncing } = useLockFn(async () => {
         id: _id,
         createdAt: _createdAt,
         updatedAt: _updatedAt,
+        deletedAt: _deletedAt,
+        userCount: _userCount,
+        createdBy: _createdBy,
+        conversationCount: _conversationCount,
+        provider: _provider,
         ...rest
     } = updatedAgent as Agent;
     Object.assign(state, rest);
@@ -105,10 +110,6 @@ function handleVariableModalOpen() {
 }
 
 const { lockFn: handleUpdate, isLock } = useLockFn(async (flag = true) => {
-    if (isCozeAgent.value) {
-        useMessage().warning(t("ai-agent.backend.configuration.coze.saveWarning"));
-        return;
-    }
     await apiUpdateAgentConfig(agentId as string, state);
     if (flag) {
         useMessage().success(t("common.message.updateSuccess"));
@@ -121,7 +122,7 @@ const handleAutoSave = useDebounceFn(() => handleUpdate(false), 1000);
 watch(
     () => state,
     () => {
-        if (!isInitialized.value || !enableAutoSave.value || isCozeAgent.value) {
+        if (!isInitialized.value || !enableAutoSave.value) {
             return;
         }
         handleAutoSave();

@@ -1120,6 +1120,7 @@ export interface ImportCozeAgentParams {
     name: string;
     description?: string;
     avatar?: string;
+    isUpdate?: boolean;
 }
 
 /**

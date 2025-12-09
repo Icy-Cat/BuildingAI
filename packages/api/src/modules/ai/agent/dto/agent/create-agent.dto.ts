@@ -1,4 +1,4 @@
-import { IsArray, IsNotEmpty, IsOptional, IsString, IsUUID } from "class-validator";
+import { IsArray, IsBoolean, IsNotEmpty, IsOptional, IsString, IsUUID } from "class-validator";
 
 import { ThirdPartyIntegrationConfigDto } from "./common-agent.dto";
 
@@ -192,4 +192,11 @@ export class ImportCozeAgentDto {
     @IsOptional()
     @IsString({ message: "智能体头像必须是字符串" })
     avatar?: string;
+
+    /**
+     * 是否更新
+     */
+    @IsOptional()
+    @IsBoolean({ message: "是否更新必须是布尔值" })
+    isUpdate?: boolean;
 }

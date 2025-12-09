@@ -38,6 +38,7 @@
         "echarts": "catalog:web",
         "libphonenumber-js": "^1.12.18",
         "nuxt-svgo": "catalog:web",
+        "pinyin-match": "^1.2.10",
         "qrcode.vue": "^3.6.0",
         "reka-ui": "catalog:web",
         "vue-drag-resize": "^2.0.3",

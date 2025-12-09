@@ -36,6 +36,17 @@
             "chatRecord": "记录与标注",
             "statistics": "数据看板"
         },
+        "cozeImport": {
+            "title": "从 Coze 导入",
+            "desc": "选择 Coze 智能体导入为应用",
+            "filterAll": "全部",
+            "filterImported": "已导入",
+            "filterNotImported": "未导入",
+            "imported": "已导入",
+            "selectAtLeastOne": "请至少选择一个 Coze 智能体",
+            "noBotsFound": "未找到智能体",
+            "success": "从 Coze 导入成功"
+        },
         "configuration": {
             "coze": {
                 "title": "Coze 智能体",

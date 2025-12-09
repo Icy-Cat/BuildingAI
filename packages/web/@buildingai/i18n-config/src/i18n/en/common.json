@@ -1,6 +1,7 @@
 {
     "power": "Points",
     "loading": "Loading...",
+    "loadMore": "Load More",
     "empty": "No data",
     "free": "Free",
     "noMoreData": "No more data",

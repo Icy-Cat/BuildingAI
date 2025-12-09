@@ -28,6 +28,11 @@ export class ThirdPartyIntegrationRequiredConstraint implements ValidatorConstra
             return false;
         }
 
+        // Coze 模式验证
+        if (createMode === "coze") {
+            return !!(thirdPartyIntegration.coze && thirdPartyIntegration.coze.botId);
+        }
+
         // 验证必填字段
         const { apiKey, baseURL } = thirdPartyIntegration;
         return !!(apiKey && baseURL);
@@ -44,6 +49,13 @@ export class ThirdPartyIntegrationRequiredConstraint implements ValidatorConstra
         const thirdPartyIntegration = args.value;
         if (!thirdPartyIntegration) {
             return "第三方集成配置不能为空";
+        }
+
+        if (createMode === "coze") {
+            if (!thirdPartyIntegration.coze?.botId) {
+                return "Coze Bot ID不能为空";
+            }
+            return "Coze配置无效";
         }
 
         const { apiKey, baseURL } = thirdPartyIntegration;

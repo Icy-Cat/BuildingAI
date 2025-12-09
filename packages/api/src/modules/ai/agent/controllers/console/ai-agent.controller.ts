@@ -40,7 +40,29 @@ export class AiAgentConsoleController {
         name: "获取Coze智能体列表",
     })
     async listCozeBots(@Query("page") page: number = 1, @Query("pageSize") pageSize: number = 20) {
-        return this.CozeService.listBots(page, pageSize);
+        const cozeResult: any = await this.CozeService.listBots(page, pageSize);
+
+        const bots = cozeResult.items || cozeResult.space_bots || [];
+        const botIds = bots.map((bot: any) => bot.bot_id || bot.id);
+
+        const importedAgents = await this.AiAgentService.findCozeAgentsByBotIds(botIds);
+        const importedBotIds = new Set(importedAgents.map((a) => a.thirdPartyIntegration?.coze?.botId));
+
+        const items = bots.map((bot: any) => ({
+            ...bot,
+            id: bot.bot_id || bot.id,
+            name: bot.bot_name || bot.name,
+            isImported: importedBotIds.has(bot.bot_id || bot.id),
+        }));
+
+        return {
+            items,
+            total: cozeResult.total || 0,
+            page: Number(page),
+            pageSize: Number(pageSize),
+            totalPages:
+                Math.ceil((cozeResult.total || 0) / Number(pageSize)) || cozeResult.totalPages || 0,
+        };
     }
 
     /**
@@ -52,6 +74,18 @@ export class AiAgentConsoleController {
         name: "导入Coze智能体",
     })
     async importCozeBot(@Body() dto: ImportCozeAgentDto, @Playground() user: UserPlayground) {
+        if (dto.isUpdate) {
+            // 查找已存在的智能体
+            const existingAgents = await this.AiAgentService.findCozeAgentsByBotIds([
+                dto.cozeBotId,
+            ]);
+            if (existingAgents.length > 0) {
+                const agent = existingAgents[0];
+                // 直接调用同步接口
+                return this.AiAgentService.syncCozeAgent(agent.id);
+            }
+        }
+
         const createDto: CreateAgentDto = {
             name: dto.name,
             description: dto.description,

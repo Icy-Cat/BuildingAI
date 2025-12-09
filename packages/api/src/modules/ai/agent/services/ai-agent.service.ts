@@ -71,6 +71,22 @@ export class AiAgentService extends BaseService<Agent> {
         }
     }
 
+    /**
+     * 根据Coze Bot ID查找已导入的智能体
+     * @param botIds Coze Bot ID列表
+     */
+    async findCozeAgentsByBotIds(botIds: string[]): Promise<Agent[]> {
+        if (!botIds.length) return [];
+
+        return this.agentRepository
+            .createQueryBuilder("agent")
+            .where("agent.createMode = :createMode", { createMode: "coze" })
+            .andWhere("agent.thirdPartyIntegration -> 'coze' ->> 'botId' IN (:...botIds)", {
+                botIds,
+            })
+            .getMany();
+    }
+
     // 创建新智能体
     async createAgent(dto: CreateAgentDto, user: UserPlayground): Promise<Agent> {
         const {
@@ -136,6 +152,29 @@ export class AiAgentService extends BaseService<Agent> {
     // 更新智能体配置
     async updateAgentConfig(id: string, dto: UpdateAgentConfigDto): Promise<Agent> {
         const agent = await this.getAgentDetail(id);
+
+        // 如果是Coze智能体，只允许更新标签和公开状态
+        if (agent.createMode === "coze") {
+            const { tagIds, isPublic } = dto;
+            const updateData: Partial<Agent> = {};
+
+            if (isPublic !== undefined) {
+                updateData.isPublic = isPublic;
+            }
+
+            return this.withErrorHandling(async () => {
+                if (Object.keys(updateData).length > 0) {
+                    await this.updateById(id, updateData);
+                }
+
+                if (tagIds !== undefined) {
+                    await this.syncAgentTags(id, tagIds);
+                }
+
+                this.logger.log(`[+] Coze智能体配置更新成功: ${id}`);
+                return this.getAgentDetail(id);
+            }, "Coze智能体配置更新失败");
+        }
 
         if (dto.name && dto.name !== agent.name) {
             await this.checkNameUniqueness(dto.name);

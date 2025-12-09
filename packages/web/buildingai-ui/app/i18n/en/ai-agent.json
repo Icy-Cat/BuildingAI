@@ -36,6 +36,17 @@
             "chatRecord": "Records & Annotation",
             "statistics": "Dashboard"
         },
+        "cozeImport": {
+            "title": "Import from Coze",
+            "desc": "Select Coze bots to import as agents",
+            "filterAll": "All",
+            "filterImported": "Imported",
+            "filterNotImported": "Not Imported",
+            "imported": "Imported",
+            "selectAtLeastOne": "Please select at least one Coze bot",
+            "noBotsFound": "No bots found",
+            "success": "Import from Coze success"
+        },
         "configuration": {
             "coze": {
                 "title": "Coze Agent",

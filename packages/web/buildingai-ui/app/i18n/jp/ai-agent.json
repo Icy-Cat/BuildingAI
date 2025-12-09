@@ -36,7 +36,25 @@
             "chatRecord": "記録と注釈",
             "statistics": "データボード"
         },
+        "cozeImport": {
+            "title": "Coze からインポート",
+            "desc": "Coze ボットを選択してエージェントとしてインポート",
+            "filterAll": "すべて",
+            "filterImported": "インポート済み",
+            "filterNotImported": "未インポート",
+            "imported": "インポート済み",
+            "selectAtLeastOne": "Coze ボットを少なくとも1つ選択してください",
+            "noBotsFound": "ボットが見つかりません",
+            "success": "Coze からのインポートに成功しました"
+        },
         "configuration": {
+            "coze": {
+                "title": "Coze エージェント",
+                "sync": "同期",
+                "editInCoze": "Coze で編集",
+                "readOnlyTip": "このエージェントは Coze で管理されています。ここでの設定は読み取り専用です。同期機能を使用してローカルメタデータを更新してください。",
+                "saveWarning": "Coze エージェントの設定は Coze によって管理されています。同期機能を使用して設定を更新してください。"
+            },
             "func": "機能設定",
             "user": "UI設定",
             "saveConfig": "設定を保存",

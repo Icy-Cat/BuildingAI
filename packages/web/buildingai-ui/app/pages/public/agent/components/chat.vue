@@ -548,15 +548,6 @@ const navigateToAgentSquare = () => {
                     <div class="flex items-center gap-2">
                         <span class="text-lg font-semibold">{{ agent.name }}</span>
                     </div>
-
-                    <UButton
-                        icon="i-lucide-squares-2x2"
-                        :label="t('ai-agent.frontend.chat.agentSquare')"
-                        color="primary"
-                        variant="ghost"
-                        size="sm"
-                        @click="navigateToAgentSquare"
-                    />
                 </div>
                 <BdScrollArea
                     class="h-full min-h-0 w-full"
