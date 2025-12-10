@@ -425,79 +425,34 @@ defineShortcuts({
             </transition>
 
             <!-- 悬浮展开按钮（收起状态时显示） -->
-            <div class="absolute top-4 left-4 z-50 flex items-center gap-2" v-if="!sidebarExpanded">
-                <UButton
-                    color="neutral"
-                    variant="soft"
-                    size="lg"
-                    class="p-2"
-                    @click="handleOpenSidebar"
+            <transition name="fade-delay">
+                <div
+                    class="bg-background absolute top-0 left-0 z-50 flex h-12 items-center gap-2 rounded-tl-xl px-4"
+                    v-if="!sidebarExpanded"
                 >
-                    <UIcon name="i-lucide-panel-right" class="size-5" />
-                </UButton>
-                <div class="text-muted-foreground mx-1">/</div>
-
-                <!-- 当前选中的会话项或新建对话 -->
-                <div class="group relative">
                     <UButton
-                        v-if="!modelValue"
-                        variant="ghost"
                         color="neutral"
+                        variant="ghost"
                         size="sm"
-                        class="px-3 py-2"
+                        class="-ml-2 p-2"
+                        @click="handleOpenSidebar"
                     >
-                        <span class="block flex-1 truncate text-left text-sm">New Chat</span>
+                        <UIcon name="i-lucide-panel-right" class="size-5" />
                     </UButton>
 
-                    <!-- 操作菜单（仅在有选中会话时显示） -->
-                    <UDropdownMenu
-                        v-else
-                        :items="[
-                            {
-                                label: '删除',
-                                color: 'error',
-                                icon: 'i-lucide-trash',
-                                onSelect: () =>
-                                    handleDeleteConversation(
-                                        conversations.find(
-                                            (c) => c.id === modelValue,
-                                        ) as AiConversation,
-                                    ),
-                            },
-                            {
-                                label: '新建对话',
-                                color: 'primary',
-                                icon: 'i-lucide-plus',
-                                onSelect: () => handleNewConversation(),
-                            },
-                        ]"
-                        :ui="{
-                            content: 'w-32',
-                            group: 'flex flex-col gap-1 p-2',
-                            itemLeadingIcon: 'size-4',
-                        }"
-                        :content="{ side: 'bottom', align: 'center' }"
+                    <span class="truncate text-lg font-semibold">{{ agent?.name }}</span>
+
+                    <UButton
+                        color="neutral"
+                        variant="ghost"
+                        size="sm"
+                        class="p-2"
+                        @click="handleNewConversation"
                     >
-                        <UButton
-                            :label="
-                                conversations.find((c) => c.id === modelValue)?.title || '当前对话'
-                            "
-                            variant="ghost"
-                            color="neutral"
-                            size="sm"
-                            class="px-3 py-2"
-                        >
-                            <span class="block flex-1 truncate text-left text-sm">
-                                {{
-                                    conversations.find((c) => c.id === modelValue)?.title ||
-                                    "当前对话"
-                                }}
-                            </span>
-                            <UIcon name="i-lucide-chevron-down" class="size-5" />
-                        </UButton>
-                    </UDropdownMenu>
+                        <UIcon name="i-lucide-plus" class="size-5" />
+                    </UButton>
                 </div>
-            </div>
+            </transition>
 
             <!-- 移动端侧边栏 -->
             <USlideover
@@ -631,5 +586,18 @@ defineShortcuts({
 .sidebar-leave-to {
     opacity: 0;
     transform: translateX(-20px);
+}
+
+.fade-delay-enter-active {
+    transition: opacity 0.2s ease 0.3s;
+}
+
+.fade-delay-leave-active {
+    transition: opacity 0.1s ease;
+}
+
+.fade-delay-enter-from,
+.fade-delay-leave-to {
+    opacity: 0;
 }
 </style>

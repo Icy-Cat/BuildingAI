@@ -38,7 +38,8 @@
     "scripts": {
         "build": "cross-env NODE_OPTIONS=--max-old-space-size=5120 turbo run build",
         "build:web": "cd packages/web/buildingai-ui && pnpm run generate",
-        "dev": "turbo run dev",
+        "dev": "turbo run dev --filter=@buildingai/api --filter=@buildingai/buildingai-ui",
+        "dev:all": "turbo run dev",
         "dev:web": "cd packages/web/buildingai-ui && pnpm run dev",
         "dev:api": "cd packages/api && pnpm run dev",
         "start": "pnpm i && cd packages/cli && pnpm run start",

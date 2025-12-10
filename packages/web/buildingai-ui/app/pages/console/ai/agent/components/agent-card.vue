@@ -34,7 +34,7 @@ onMounted(() => {
 <template>
     <div
         class="group relative cursor-pointer rounded-lg border p-4 transition-all duration-200 hover:shadow-lg"
-        :class="[selected ? 'border-primary ring-primary ring-1 bg-primary/5' : 'border-default']"
+        :class="[selected ? 'border-primary ring-primary bg-primary/5 ring-1' : 'border-default']"
         @click="handleViewDetail"
     >
         <div v-if="selectionMode" class="absolute top-3 right-3 z-20" @click.stop>
@@ -151,12 +151,7 @@ onMounted(() => {
                     </UBadge>
                 </div>
             </div>
-            <TagCreate
-                v-else
-                v-model="tags"
-                type="app"
-                @close="emits('updateTags', agent, tags)"
-            >
+            <TagCreate v-else v-model="tags" type="app" @close="emits('updateTags', agent, tags)">
                 <template #trigger>
                     <div class="hover:bg-muted rounded-lg py-1" @click.stop>
                         <UButton
