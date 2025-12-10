@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import Chat from "../components/chat.vue";
 
-definePageMeta({ auth: false, activePath: "/public/agent/square" });
+definePageMeta({ auth: true, activePath: "/public/agent/square" });
 </script>
 
 <template>
